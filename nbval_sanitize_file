@@ -9,3 +9,7 @@ replace: DATE-STAMP
 [regex3]
 regex: \d{2}:\d{2}:\d{2}
 replace: TIME-STAMP
+
+[regex4]
+regex: CPython\s3.7.\d
+replace: PYTHON-3.7.X

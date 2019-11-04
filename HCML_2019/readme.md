@@ -1,3 +1,4 @@
+[![new BSD](https://img.shields.io/github/license/So-Cool/bLIMEy.svg)](https://github.com/So-Cool/bLIMEy/blob/master/LICENCE)
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/So-Cool/bLIMEy/master?filepath=HCML_2019)
 
 # bLIMEy: Surrogate Prediction Explanations Beyond LIME #
@@ -5,12 +6,14 @@
 This directory contains a Jupyter Notebook that can be used to reproduce the
 results included in the Appendix of the
 "*bLIMEy: Surrogate Prediction Explanations Beyond LIME*" paper published at
-the *2019 Workshop on Human-Centric Machine Learning*
-([HCML 2019](https://sites.google.com/view/hcml-2019)) held during the
-33rd Conference on Neural Information Processing Systems (NeurIPS 2019),
+the *2019 Workshop on Human-Centric Machine Learning* ([HCML 2019]) held during
+the 33rd Conference on Neural Information Processing Systems (NeurIPS 2019),
 Vancouver, Canada.
 
-The manuscript is available on [arXiv](https://arxiv.org/abs/1910.13016).
+The manuscript is available on [arXiv].
+
+A related *how-to* guide illustrating how to build custom surrogates for
+tabular data is [a part of the FAT Forensics documentation].
 
 To run the notebook (`bLIMEy.ipynb`) you need to install
 `fat-forensics>=0.0.2`, `matplotlib` and `scikit-learn`. Additionally, the
@@ -51,3 +54,7 @@ using the example of LIME.
   year={2019}
 }
 ```
+
+[HCML 2019]: https://sites.google.com/view/hcml-2019
+[arXiv]: https://arxiv.org/abs/1910.13016
+[a part of the FAT Forensics documentation]: https://fat-forensics.org/how_to/transparency/tabular-surrogates.html

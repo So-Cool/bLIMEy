@@ -1,0 +1,3 @@
+#!/bin/bash
+
+pip install -r HCML_2019/requirements.txt

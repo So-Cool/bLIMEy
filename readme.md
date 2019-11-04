@@ -11,5 +11,8 @@ of black-box predictions (bLIMEy). The list of manuscripts is enclosed below.
 
 ## bLIMEy: Surrogate Prediction Explanations Beyond LIME ##
 
-* The manuscripts available on [arXiv](https://arxiv.org/abs/1910.13016).
-* Experiments available in the [HCML 2019 directory](https://github.com/So-Cool/bLIMEy/tree/master/HCML_2019).
+* The manuscripts available on [arXiv].
+* Experiments available in the [HCML 2019 directory].
+
+[arXiv]: https://arxiv.org/abs/1910.13016
+[HCML 2019 directory]: https://github.com/So-Cool/bLIMEy/tree/master/HCML_2019
