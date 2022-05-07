@@ -16,3 +16,11 @@ of black-box predictions (bLIMEy). The list of manuscripts is enclosed below.
 
 [blimey]: https://arxiv.org/abs/1910.13016
 [hcml19]: https://github.com/So-Cool/bLIMEy/tree/master/HCML_2019
+
+## Towards Faithful and Meaningful Interpretable Representations ##
+
+* The manuscript is available on [arXiv][ir].
+* The code is available in the [`DAMI_2021` directory][dami21].
+
+[ir]: https://arxiv.org/abs/2008.07007
+[dami21]: https://github.com/So-Cool/bLIMEy/tree/master/DAMI_2021

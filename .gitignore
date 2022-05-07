@@ -1,3 +1,13 @@
+# MacOS
 *.DS_Store
+
+# Python
 *.ipynb_checkpoints
+__pycache__
+*.pickle
+
+# Artefacts
+**/scripts/*.py
+**/_figures
 *.pdf
+*.zip
