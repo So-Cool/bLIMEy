@@ -30,3 +30,5 @@ jobs:
         python -c 'import torchvision.models as models; models.alexnet(pretrained=True);'
     - name: Test HCML 2019
       run: pytest --nbval HCML_2019/ --sanitize-with .nbval_sanitize_file.cfg
+    - name: Test DAMI 2021
+      run: pytest --nbval DAMI_2021/ --sanitize-with .nbval_sanitize_file.cfg

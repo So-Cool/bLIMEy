@@ -1,1 +1,2 @@
--r HCML_2019/requirements.txt
+-r ../HCML_2019/requirements.txt
+-r ../DAMI_2021/requirements.txt
