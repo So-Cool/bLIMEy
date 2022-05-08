@@ -23,6 +23,7 @@ jobs:
     - name: Install LaTeX
       run: |
         sudo apt-get install -y \
+          dvipng \
           texlive \
           texlive-xetex \
           texlive-fonts-recommended \
