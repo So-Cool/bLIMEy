@@ -21,7 +21,12 @@ jobs:
         python-version: 3.7
         cache: 'pip'
     - name: Install LaTeX
-      run: sudo apt-get install -y texlive
+      run: |
+        sudo apt-get install -y \
+          texlive \
+          texlive-xetex \
+          texlive-fonts-recommended \
+          texlive-generic-recommended
     - name: Install dependencies 💾
       run: |
         pip install -r requirements-ci.txt
