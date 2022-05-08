@@ -10,6 +10,7 @@ representations in XAI.
 
 import math
 import os
+import pickle
 import random
 import warnings
 
@@ -237,6 +238,36 @@ def exp_process_image_40(img):
     return process_image(
         img, imgclf.ImageClassifier(), segments_no=40,
         sample_size=100, random_seed=42)
+
+
+def _process_img_data(data_path):
+    """Compresses experimental results of image data."""
+    with open(data_path, 'rb') as f:
+        exp_data = pickle.load(f)
+
+    exp_data_compressed = {}
+    for img_path in exp_data:
+        if exp_data[img_path][1] is None:
+            continue
+
+        i = np.argmax(exp_data[img_path][0])
+
+        by_colour = {}
+        for colour in exp_data[img_path][1]:
+            by_colour[colour] = []
+            for j in exp_data[img_path][1][colour]:
+                c1 = j[:, i]
+                c0 = np.zeros(c1.shape)
+                by_colour[colour].append(np.column_stack([c0, c1]))
+
+        exp_data_compressed[img_path] = (
+            np.array([0, exp_data[img_path][0][i]]),
+            by_colour
+        )
+
+    data_path_ = data_path.replace('.pickle', '_compressed.pickle')
+    with open(data_path_, 'wb') as f:
+        pickle.dump(exp_data_compressed, f, protocol=pickle.HIGHEST_PROTOCOL)
 
 
 def millify(number, textualise=False):
