@@ -19,6 +19,20 @@ in the `requirements.txt` file (`pip install -r requirements.txt`).
 Alternatively the notebooks can be executed on Binder by following the Binder
 button included at the top of this page.
 
+Additionally, running some of the experiments requires downloading auxiliary
+FAT Forensics scripts:
+
+```bash
+mkdir -p scripts
+
+# __init__.py
+wget https://raw.githubusercontent.com/fat-forensics/resources/master/surrogates_overview/scripts/__init__.py -O scripts/__init__.py
+# image_classifier.py
+wget https://raw.githubusercontent.com/fat-forensics/resources/master/surrogates_overview/scripts/image_classifier.py -O scripts/image_classifier.py
+# imagenet_label_map.py
+wget https://raw.githubusercontent.com/fat-forensics/resources/master/surrogates_overview/scripts/imagenet_label_map.py -O scripts/imagenet_label_map.py
+```
+
 ## Abstract ##
 
 Interpretable representations are the backbone of many black-box explainers.
