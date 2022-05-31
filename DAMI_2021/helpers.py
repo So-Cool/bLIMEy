@@ -44,18 +44,20 @@ SEG_MSG = ('The segmentation array should encode unique segments with a '
 
 def plot_bar_exp(
         exp, savepath=None, onesided=True, feature_no=5, x_lim=None,
-        fontsize=24, label_fmt=None
+        fontsize=24, label_fmt=None, start_at_one=True
         ):
     """Plots feature importance/influence explanation."""
     if label_fmt is None:
         label_fmt = '\\(f_{{{:d}}}\\)'
+    _start_at_one = 1 if start_at_one else 0
+
 
     plt.figure(figsize=(6, 6))
 
     exp_ = []
     for i, v in enumerate(exp):
         c = 'red' if v < 0 else 'green'
-        exp_.append((i + 1, v, c))
+        exp_.append((i + _start_at_one, v, c))
     exp_ = sorted(exp_, key=lambda i: abs(i[1]), reverse=False)
 
     exp_f, exp_v, exp_c = [], [], []
