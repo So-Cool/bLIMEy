@@ -22,6 +22,7 @@ jobs:
         cache: 'pip'
     - name: Install LaTeX
       run: |
+        sudo apt-get update
         sudo apt-get install -y \
           dvipng \
           texlive \
