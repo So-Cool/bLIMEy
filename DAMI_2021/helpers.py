@@ -465,7 +465,7 @@ def get_lime(dataset, labels, distance_factor=0.3, classification=True):
 
 
 def get_tree_global(dataset, labels, leaves, classification=True,
-                    report=True, random_seed=42,
+                    report=True, random_seed=42, distance_factor=0.3,
                     validation_dataset=None, validation_labels=None):
     """Evaluates GLOBAL IR of a tree-based discretisation."""
     if validation_dataset is None:
@@ -484,7 +484,16 @@ def get_tree_global(dataset, labels, leaves, classification=True,
         int(leaves / 16)
     ))[::-1]
 
+    if distance_factor is not None:
+        # Get distances between all the points in the data set
+        dist_matrix = fatf_dist.euclidean_array_distance(
+            validation_dataset, validation_dataset)
+        # Get the distance radius for identifying close instances
+        max_dist = dist_matrix.max()
+        radius = max_dist * distance_factor
+
     outcomes = {}
+    outcomes_nearby = {}
     for width in leaves_range:
         # Build a tree
         if classification:
@@ -502,12 +511,37 @@ def get_tree_global(dataset, labels, leaves, classification=True,
             assignment, validation_labels, metric)
         assert assignment_unique_no <= width
 
+        if distance_factor is not None:
+            # Evaluate on a local sample
+            outcomes_nearby[width] = []
+            for x in validation_dataset:
+                # Get indices of nearby instances
+                dist = fatf_dist.euclidean_point_distance(x, validation_dataset)
+                val_ind = dist <= radius
+
+                # Get nearby instances
+                nearby_instances = validation_dataset[val_ind, :]
+                nearby_labels = validation_labels[val_ind]
+                # Generate IR
+                nearby_assignment = clf.apply(nearby_instances)
+
+                # Get homogeneity of the binary representation (IR)
+                nearby_wghtd_homogeneity, nearby_unique_no = get_weighted_homogeneity(
+                    nearby_assignment, nearby_labels, metric)
+                outcomes_nearby[width].append(nearby_wghtd_homogeneity)
+                assert nearby_unique_no <= width
+
         if report:
             print('Global weighted homogeneity of tree-based discretisation '
                 f'({width} leaves): {global_wghtd_homogeneity}.')
+            if distance_factor is not None:
+                print('Local weighted homogeneity of tree-based discretisation '
+                      f'({width} leaves): '
+                      f'{np.mean(outcomes_nearby[width])} +- '
+                      f'{np.std(outcomes_nearby[width])}.')
 
         outcomes[width] = global_wghtd_homogeneity
-    return outcomes
+    return outcomes, outcomes_nearby
 
 
 def get_tree_local(
@@ -546,8 +580,9 @@ def get_tree_local(
         val_labels = labels[val_ind]
 
         # Global within a local scope = local
-        local_scope = get_tree_global(
+        local_scope, _ = get_tree_global(
             val_data_discrete, val_labels, leaves,
+            distance_factor=None,
             classification=classification, report=False,
             random_seed=random_seed)
         assert np.array_equal(
