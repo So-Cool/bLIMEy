@@ -1,0 +1,49 @@
+name: Test Jupyter Notebook 📓
+on: push
+jobs:
+  build-n-deploy:
+    name: Test 🔧
+    runs-on: ubuntu-18.04
+    steps:
+    - name: Checkout code 🛎️
+      uses: actions/checkout@v2.3.1
+      with:
+        persist-credentials: false
+    - name: Cache models and data
+      uses: actions/cache@v3
+      with:
+        path: |
+          /home/runner/.cache/torch
+        key: ${{ runner.os }}-data_models
+    - name: Set up Python 3.7 🐍
+      uses: actions/setup-python@v3
+      with:
+        python-version: 3.7
+        cache: 'pip'
+    - name: Install LaTeX
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          dvipng \
+          texlive \
+          texlive-xetex \
+          texlive-fonts-recommended \
+          texlive-generic-recommended
+    - name: Install dependencies 💾
+      run: |
+        pip install -r requirements-ci.txt
+        pip install -r .binder/requirements.txt
+    - name: Get PyTorch model
+      run: |
+        python -c 'import torchvision.models as models; models.inception_v3(pretrained=True);'
+        python -c 'import torchvision.models as models; models.alexnet(pretrained=True);'
+    - name: Get scripts
+      run: |
+        mkdir -p DAMI_2021/scripts
+        wget https://raw.githubusercontent.com/fat-forensics/resources/master/surrogates_overview/scripts/__init__.py -O DAMI_2021/scripts/__init__.py
+        wget https://raw.githubusercontent.com/fat-forensics/resources/master/surrogates_overview/scripts/image_classifier.py -O DAMI_2021/scripts/image_classifier.py
+        wget https://raw.githubusercontent.com/fat-forensics/resources/master/surrogates_overview/scripts/imagenet_label_map.py -O DAMI_2021/scripts/imagenet_label_map.py
+    - name: Test HCML 2019
+      run: pytest --nbval HCML_2019/ --sanitize-with .nbval_sanitize_file.cfg
+    - name: Test DAMI 2021
+      run: pytest --nbval DAMI_2021/ --sanitize-with .nbval_sanitize_file.cfg
