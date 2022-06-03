@@ -368,10 +368,10 @@ def get_lime(dataset, labels, distance_factor=0.3, classification=True):
     dataset_discrete = dataset_q.discretise(dataset)
 
     # Get GLOBAL weighted homogeneity of the discretisation
-    global_wghtd_homogeneity, dataset_discrete_unique_no = get_weighted_homogeneity(
+    disc_wghtd_homogeneity, dataset_discrete_unique_no = get_weighted_homogeneity(
         dataset_discrete, labels, metric)
-    print('Global weighted homogeneity of discretisation: '
-          f'{global_wghtd_homogeneity}.')
+    print('Weighted homogeneity of global quartile discretisation: '
+          f'{disc_wghtd_homogeneity}.')
     print(f'Unique discrete points count: {dataset_discrete_unique_no}.')
 
     # Get distances between all the points in the data set
@@ -381,8 +381,12 @@ def get_lime(dataset, labels, distance_factor=0.3, classification=True):
     radius = max_dist * distance_factor
 
     # Assess LOCAL homogeneity around each instance in the data set
+    global_wghtd_homogeneities = []
+    global_dataset_binary_unique_nos = []
+    local_disc_homogeneities = []
+    local_dataset_discrete_unique_nos = []
     local_wghtd_homogeneities = []
-    dataset_binary_unique_nos = []
+    local_dataset_binary_unique_nos = []
     for x_idx, x in enumerate(dataset):
         # Get indices of nearby instances
         dist = fatf_dist.euclidean_point_distance(x, dataset)
@@ -394,24 +398,70 @@ def get_lime(dataset, labels, distance_factor=0.3, classification=True):
         val_labels = labels[val_ind]
 
         # Binarise instances according to the selected instance
-        dataset_binary = (val_data_discrete == x_discrete).astype(np.int8)
+        global_dataset_binary = (val_data_discrete == x_discrete).astype(np.int8)
 
         # Get homogeneity of the binary representation (IR)
-        local_wghtd_homogeneity, local_bin_unique = get_weighted_homogeneity(
-            dataset_binary, val_labels, metric)
-        local_wghtd_homogeneities.append(local_wghtd_homogeneity)
-        dataset_binary_unique_nos.append(local_bin_unique)
+        global_wghtd_homogeneity, global_bin_unique = get_weighted_homogeneity(
+            global_dataset_binary, val_labels, metric)
+        global_wghtd_homogeneities.append(global_wghtd_homogeneity)
+        global_dataset_binary_unique_nos.append(global_bin_unique)
 
+        # Repeat with local discretisation
+        ## Get data
+        local_x = dataset[x_idx, :]
+        local_data = dataset[val_ind, :]
+        local_labels = labels[val_ind]
+
+        ## Get discretisation
+        local_q = fatf_discretisation.QuartileDiscretiser(local_data)
+        local_dataset_discrete = local_q.discretise(local_data)
+        local_x_discrete = local_q.discretise(local_x)
+
+        ## Get homogeneity of discretisation
+        local_disc_wghtd_homogeneity, local_dataset_discrete_unique_no = get_weighted_homogeneity(
+            local_dataset_discrete, local_labels, metric)
+        local_disc_homogeneities.append(local_disc_wghtd_homogeneity)
+        local_dataset_discrete_unique_nos.append(local_dataset_discrete_unique_no)
+
+        ## Get binarisation
+        local_dataset_binary = (local_dataset_discrete == local_x_discrete).astype(np.int8)
+
+        ## Get homogeneity
+        local_wghtd_homogeneity, local_bin_unique = get_weighted_homogeneity(
+            local_dataset_binary, local_labels, metric)
+        local_wghtd_homogeneities.append(local_wghtd_homogeneity)
+        local_dataset_binary_unique_nos.append(local_bin_unique)
+
+    print('\n')
+    print('Global weighted homogeneity of binarisation: '
+          f'{np.mean(global_wghtd_homogeneities)} +- '
+          f'{np.std(global_wghtd_homogeneities)}.')
+    print(f'Unique binary points count: {np.mean(global_dataset_binary_unique_nos)} '
+          f'+- {np.std(global_dataset_binary_unique_nos)}.')
+
+    print('\n\n' + 40 * '~+' + '\n\n')
+
+    print('Weighted homogeneity of local quartile discretisations: '
+          f'{np.mean(local_disc_homogeneities)} +- '
+          f'{np.std(local_disc_homogeneities)}.')
+    print(f'Unique discrete points count: {np.mean(local_dataset_discrete_unique_nos)} '
+          f'+- {np.std(local_dataset_discrete_unique_nos)}.')
+
+    print('\n')
     print('Local weighted homogeneity of binarisation: '
           f'{np.mean(local_wghtd_homogeneities)} +- '
           f'{np.std(local_wghtd_homogeneities)}.')
-    print(f'Unique binary points count: {np.mean(dataset_binary_unique_nos)} '
-          f'+- {np.std(dataset_binary_unique_nos)}.')
+    print(f'Unique binary points count: {np.mean(local_dataset_binary_unique_nos)} '
+          f'+- {np.std(local_dataset_binary_unique_nos)}.')
 
-    return (global_wghtd_homogeneity,
+    return (disc_wghtd_homogeneity,
+            global_wghtd_homogeneities,
+            local_disc_homogeneities,
             local_wghtd_homogeneities,
             dataset_discrete_unique_no,
-            max(dataset_binary_unique_nos))
+            max(global_dataset_binary_unique_nos),
+            max(local_dataset_discrete_unique_nos),
+            max(local_dataset_binary_unique_nos))
 
 
 def get_tree_global(dataset, labels, leaves, classification=True,
