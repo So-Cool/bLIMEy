@@ -17,7 +17,7 @@ of black-box predictions (bLIMEy). The list of manuscripts is enclosed below.
 [blimey]: https://arxiv.org/abs/1910.13016
 [hcml19]: https://github.com/So-Cool/bLIMEy/tree/master/HCML_2019
 
-## Towards Faithful and Meaningful Interpretable Representations ##
+## Interpretable Representations in Explainable AI: From Theory to Practice ##
 
 * The manuscript is available on [arXiv][ir].
 * The code is available in the [`DAMI_2021` directory][dami21].

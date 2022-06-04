@@ -1,11 +1,11 @@
 [![new BSD](https://img.shields.io/github/license/So-Cool/bLIMEy.svg)](https://github.com/So-Cool/bLIMEy/blob/master/LICENCE)
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/So-Cool/bLIMEy/master?filepath=DAMI_2021)
 
-# Towards Faithful and Meaningful Interpretable Representations #
+# Interpretable Representations in Explainable AI: From Theory to Practice #
 
 This directory contains a collection of Jupyter Notebooks that can be used to
 reproduce the plots and experiments reported in the
-"*Towards Faithful and Meaningful Interpretable Representations*" paper.
+"*Interpretable Representations in Explainable AI: From Theory to Practice*" paper.
 
 The manuscript is available on [arXiv].
 
@@ -57,9 +57,9 @@ sensitivity of images to segmentation granularity and occlusion colour.
 
 ## BibTeX ##
 ```
-@article{sokol2020towards,
-  title={{T}owards {F}aithful and {M}eaningful {I}nterpretable
-         {R}epresentations},
+@article{sokol2020interpretable,
+  title={Interpretable Representations in Explainable {AI}:
+         {F}rom Theory to Practice},
   author={Sokol, Kacper and Flach, Peter},
   journal={arXiv preprint arXiv:2008.07007},
   url={https://arxiv.org/abs/2008.07007},
