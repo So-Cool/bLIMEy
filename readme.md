@@ -25,10 +25,10 @@ of black-box predictions (bLIMEy). The list of manuscripts is enclosed below.
 [ir]: https://arxiv.org/abs/2008.07007
 [dami21]: https://github.com/So-Cool/bLIMEy/tree/master/DAMI_2021
 
-## LIMEtree: Customisable, Faithful and Consistent Multi-class Explanations ##
+## Consistent Explanations of Multiple Classes with LIMEtree ##
 
 * The manuscript is available on [arXiv][limetree].
-* The code is available in the [`AAAI_2023` directory][aaai23].
+* The code is available in the [`IJCAI_2023` directory][ijcai23].
 
 [limetree]: https://arxiv.org/abs/2005.01427
-[aaai23]: https://github.com/So-Cool/bLIMEy/tree/master/AAAI_2023
+[ijcai23]: https://github.com/So-Cool/bLIMEy/tree/master/IJCAI_2023

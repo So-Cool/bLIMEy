@@ -1,11 +1,11 @@
 [![new BSD](https://img.shields.io/github/license/So-Cool/bLIMEy.svg)](https://github.com/So-Cool/bLIMEy/blob/master/LICENCE)
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/So-Cool/bLIMEy/master?filepath=AAAI_2023)
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/So-Cool/bLIMEy/master?filepath=IJCAI_2023)
 
-# LIMEtree: Customisable, Faithful and Consistent Multi-class Explanations #
+# Consistent Explanations of Multiple Classes with LIMEtree #
 
 This directory contains a collection of Jupyter Notebooks that can be used to
-reproduce the plots and experiments reported in the
-"*LIMEtree: Customisable, Faithful and Consistent Multi-class Explanations*" paper.
+reproduce the explanations, experiments and plots reported in the
+"*Consistent Explanations of Multiple Classes with LIMEtree*" paper.
 
 The manuscript is available on [arXiv].
 
@@ -35,14 +35,33 @@ wget https://raw.githubusercontent.com/fat-forensics/resources/master/surrogates
 
 ## Abstract ##
 
-TODO
+Explainable machine learning provides numerous tools to better understand
+predictive models and their decisions, however many of these methods are
+limited to producing explanations of a single class.
+While such insights can be generated for different classes, reasoning over
+them to obtain a complete view my be difficult or even impossible when they
+present similar, competing or contradictory evidence.
+To address this shortcoming we introduce a novel paradigm of
+*multi-class explanations*.
+We outline the theory behind such techniques and propose a local surrogate
+based on multi-output regression trees -- called LIMEtree -- which offers
+*faithful* and *consistent* explanations of multiple classes for individual
+predictions while being post-hoc, model-agnostic and data-universal.
+In addition to strong fidelity guarantees, our implementation supports
+(interactive) *customisation* of the explanatory insights and delivers a
+range of diverse explanation types, including counterfactual statements
+praised in the literature.
+We evaluate our algorithm with a collection of quantitative experiments and
+a preliminary user study on an image classification task, comparing it
+against LIME.
+Our analysis demonstrates the benefits of multi-class explanations and
+superiority of our method across a wide array of scenarios.
 
 ## BibTeX ##
 
 ```
 @article{sokol2020limetree,
-  title={{LIMEtree}: {C}ustomisable, Faithful and Consistent
-         Multi-class Explanations},
+  title={Consistent Explanations of Multiple Classes with {LIMEtree}},
   author={Sokol, Kacper and Flach, Peter},
   journal={arXiv preprint arXiv:2005.01427},
   url={https://arxiv.org/abs/2005.01427},
