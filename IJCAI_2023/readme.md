@@ -25,6 +25,9 @@ FAT Forensics scripts:
 ```bash
 mkdir -p scripts
 
+# helpers.py
+cp ../DAMI_2021/helpers.py scripts/
+
 # __init__.py
 wget https://raw.githubusercontent.com/fat-forensics/resources/master/surrogates_overview/scripts/__init__.py -O scripts/__init__.py
 # image_classifier.py
