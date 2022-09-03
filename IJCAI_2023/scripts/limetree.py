@@ -30,10 +30,13 @@ import numpy as np
 from PIL import Image
 from sklearn.tree import _tree
 
+import scripts.image_classifier as imgclf
+
 __all__ = ['imshow', 'visualise_img',
            'tree_to_code', 'rules_dict2array', 'rules_dict2list',
            'tree_get_explanation', 'filter_explanations',
-           'explain_image', 'lime_loss', 'limet_loss', 'compute_loss',
+           'explain_image', 'explain_image_exp',
+           'lime_loss', 'limet_loss', 'compute_loss',
            'process_loss', 'summarise_loss_lime', 'summarise_loss_limet',
            'plot_loss_summary']
 
@@ -517,6 +520,30 @@ def explain_image(image_path, classifier,
                 diffs_fixed_weightedR=diffs_fixed_weightedR)
 
     return image_path, top_three_classes, similarities, lime_dict, lime_tree_dict
+
+
+def explain_image_exp(
+        image_path, use_gpu=False,
+        random_seed=42, n_top_classes=3,            # General
+        samples_number=150, batch_size=50,          # Processing
+        segmenter_type='slic',                      # Segmenter Type
+        ratio=0.5, kernel_size=5, max_dist=10,      # QS Segmenter
+        n_segments=13,                              # Slic Segmenter
+        occlusion_colour='black',                   # Occluder
+        generate_complete_sample=True,              # Sampler
+        kernel_width=0.25                           # Similarity
+        ):
+    clf = imgclf.ImageClassifier(use_gpu=use_gpu)
+    return explain_image(
+        image_path, clf,
+        random_seed=random_seed, n_top_classes=n_top_classes,
+        samples_number=samples_number, batch_size=batch_size,
+        segmenter_type=segmenter_type,
+        ratio=ratio, kernel_size=kernel_size, max_dist=max_dist,
+        n_segments=n_segments,
+        occlusion_colour=occlusion_colour,
+        generate_complete_sample=generate_complete_sample,
+        kernel_width=kernel_width)
 
 
 def lime_loss(residuals, weights=None):
