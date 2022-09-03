@@ -28,19 +28,10 @@ else:
 def process_images_cpu(image_paths):
     """[CPU] Evaluates effectiveness of LIMEtree for a collection of images."""
     assert not USE_GPU
-    func = lambda img: limetree.explain_image_exp(
-        img, use_gpu=USE_GPU, random_seed=42, n_top_classes=3,
-        batch_size=100,                             # Processing
-        segmenter_type='slic',                      # Segmenter Type
-        n_segments=13,                              # Slic Segmenter
-        occlusion_colour='black',                   # Occluder
-        generate_complete_sample=True,              # Sampler
-        kernel_width=0.25)                          # Similarity
-
     collector = dict()
     processes = int(mp.cpu_count()/2) - 1
     with Pool(processes=processes) as pool:
-        for imp in pool.imap_unordered(func, image_paths):
+        for imp in pool.imap_unordered(limetree.explain_image_exp, image_paths):
             img_path, top_pred, similarities, lime, limet = imp
             collector[img_path] = (top_pred, similarities, lime, limet)
 
@@ -52,18 +43,16 @@ def process_images_gpu(image_paths):
     """[GPU] Evaluates effectiveness of LIMEtree for a collection of images."""
     assert USE_GPU
     clf = imgclf.ImageClassifier(use_gpu=USE_GPU)
-    func = lambda img: limetree.explain_image(
-        img, clf, random_seed=42, n_top_classes=3,
-        batch_size=100,                             # Processing
-        segmenter_type='slic',                      # Segmenter Type
-        n_segments=13,                              # Slic Segmenter
-        occlusion_colour='black',                   # Occluder
-        generate_complete_sample=True,              # Sampler
-        kernel_width=0.25)                          # Similarity
-
     collector = dict()
     for img in image_paths:
-        img_path, top_pred, similarities, lime, limet = func(img)
+        img_path, top_pred, similarities, lime, limet = limetree.explain_image(
+            img, clf, random_seed=42, n_top_classes=3,
+            batch_size=100,                             # Processing
+            segmenter_type='slic',                      # Segmenter Type
+            n_segments=13,                              # Slic Segmenter
+            occlusion_colour='black',                   # Occluder
+            generate_complete_sample=True,              # Sampler
+            kernel_width=0.25)                          # Similarity
         collector[img_path] = (top_pred, similarities, lime, limet)
 
     with open(PICKLE_FILE.format(SAMPLE_SIZE), 'wb') as f:
@@ -83,7 +72,6 @@ if __name__ == '__main__':
         Execute with:
         `python experiments.py img /path/to/a/folder/with/images`
     """
-    global SAMPLE_SIZE
     if USE_GPU:
         process_images = process_images_gpu
     else:
@@ -94,13 +82,13 @@ if __name__ == '__main__':
         image_paths =  helpers.select_images(
             sys.argv[2], sample_size=SAMPLE_SIZE, random_seed=42)
         print(f'Trying {len(image_paths)} images.')
-        process_images(image_paths, int(sys.argv[3]))
+        process_images(image_paths)
     elif len(sys.argv) == 3 and sys.argv[1] == 'img':
         print('Running full image experiments.')
         image_paths =  helpers.select_images(
             sys.argv[2], sample_size=None, random_seed=None)
         SAMPLE_SIZE = len(image_paths)
         print(f'Trying {SAMPLE_SIZE} images.')
-        process_images(image_paths, int(sys.argv[3]))
+        process_images(image_paths)
     else:
         print('Nothing to do.')
