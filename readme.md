@@ -28,7 +28,7 @@ of black-box predictions (bLIMEy). The list of manuscripts is enclosed below.
 ## Consistent Explanations of Multiple Classes with LIMEtree ##
 
 * The manuscript is available on [arXiv][limetree].
-* The code is available in the [`IJCAI_2023` directory][ijcai23].
+* The code is available in the [`ECML-PKDD_2023` directory][ecmlpkdd23].
 
 [limetree]: https://arxiv.org/abs/2005.01427
-[ijcai23]: https://github.com/So-Cool/bLIMEy/tree/master/IJCAI_2023
+[ecmlpkdd23]: https://github.com/So-Cool/bLIMEy/tree/master/ECML-PKDD_2023

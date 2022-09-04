@@ -47,5 +47,5 @@ jobs:
       run: pytest --nbval HCML_2019/ --sanitize-with .nbval_sanitize_file.cfg
     - name: Test DAMI 2021
       run: pytest --nbval DAMI_2021/ --sanitize-with .nbval_sanitize_file.cfg
-    - name: Test IJCAI 2023
-      run: pytest --nbval IJCAI/ --sanitize-with .nbval_sanitize_file.cfg
+    - name: Test ECML-PKDD 2023
+      run: pytest --nbval ECML-PKDD_2023/ --sanitize-with .nbval_sanitize_file.cfg
