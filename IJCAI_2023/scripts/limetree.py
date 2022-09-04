@@ -55,6 +55,9 @@ matplotlib.rc('text', usetex=True)
 # matplotlib.rc('font', family='sans-serif', sans-serif=['Helvetica'])
 # matplotlib.rc('font', family='serif', serif=['Palatino'])
 
+SEG_MSG = ('The segmentation array should encode unique segments with a '
+           'continuous sequence of integers starting at 1.')
+
 
 def imshow(img):
     plt.grid(None)
@@ -325,7 +328,17 @@ def explain_image(image_path, classifier,
     if segmenter_type == 'slic':
         assert n_segments >= 2, 'You need at least two segments.'
         while True:
-            segmenter = fatf_segmentation.Slic(img, n_segments=n_segments)
+            try:
+                segmenter = fatf_segmentation.Slic(img, n_segments=n_segments)
+            except ValueError as e:
+                if str(e) == SEG_MSG:
+                    if n_segments < 2:
+                        logger.debug('Could not segment the image.')
+                        return image_path, top_three_classes, None, None, None
+                    n_segments -= 1
+                    continue
+                else:
+                    raise e
             if segmenter.segments_number < 2 or n_segments < 2:
                 logger.debug('Could not segment the image.')
                 return image_path, top_three_classes, None, None, None

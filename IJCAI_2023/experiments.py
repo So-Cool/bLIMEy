@@ -8,6 +8,7 @@ This module implements experiments executor for LIMEtree.
 # Author: Kacper Sokol <k.sokol@bristol.ac.uk>
 # License: new BSD
 
+import logging
 import pickle
 import sys
 
@@ -15,6 +16,7 @@ import scripts.helpers as helpers
 import scripts.limetree as limetree
 
 USE_GPU = False
+ENABLE_LOGGING = False
 SAMPLE_SIZE = 150
 PICKLE_FILE = 'limetree_{:d}.pickle'
 
@@ -23,6 +25,10 @@ if USE_GPU:
 else:
     import multiprocessing as mp
     from multiprocessing import Pool
+
+if ENABLE_LOGGING:
+    # logging.basicConfig(level=logging.DEBUG)
+    limetree.logger.setLevel(logging.DEBUG)
 
 
 def process_images_cpu(image_paths):
@@ -44,7 +50,8 @@ def process_images_gpu(image_paths):
     assert USE_GPU
     clf = imgclf.ImageClassifier(use_gpu=USE_GPU)
     collector = dict()
-    for img in image_paths:
+    i_len = len(image_paths)
+    for i, img in enumerate(image_paths):
         img_path, top_pred, similarities, lime, limet = limetree.explain_image(
             img, clf, random_seed=42, n_top_classes=3,
             batch_size=100,                             # Processing
@@ -54,6 +61,7 @@ def process_images_gpu(image_paths):
             generate_complete_sample=True,              # Sampler
             kernel_width=0.25)                          # Similarity
         collector[img_path] = (top_pred, similarities, lime, limet)
+        limetree.logger.debug(f'Progress: {i/i_len:3.0d}')
 
     with open(PICKLE_FILE.format(SAMPLE_SIZE), 'wb') as f:
         pickle.dump(collector, f, protocol=pickle.HIGHEST_PROTOCOL)
