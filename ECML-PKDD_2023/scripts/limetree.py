@@ -55,8 +55,8 @@ matplotlib.rc('text', usetex=True)
 # matplotlib.rc('font', family='sans-serif', sans-serif=['Helvetica'])
 # matplotlib.rc('font', family='serif', serif=['Palatino'])
 
-SEG_MSG = ('The segmentation array should encode unique segments with a '
-           'continuous sequence of integers starting at 1.')
+SEG_MSG = ('Slic segmenter failed. '
+           'Try upgrading to scikit-image 0.19.2 or higher.')
 
 
 def imshow(img):
@@ -330,7 +330,7 @@ def explain_image(image_path, classifier,
         while True:
             try:
                 segmenter = fatf_segmentation.Slic(img, n_segments=n_segments)
-            except ValueError as e:
+            except RuntimeError as e:
                 if str(e) == SEG_MSG:
                     if n_segments < 2:
                         logger.debug('Could not segment the image.')
