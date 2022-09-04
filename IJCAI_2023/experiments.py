@@ -9,6 +9,7 @@ This module implements experiments executor for LIMEtree.
 # License: new BSD
 
 import logging
+import os.path
 import pickle
 import sys
 
@@ -61,10 +62,29 @@ def process_images_gpu(image_paths):
             generate_complete_sample=True,              # Sampler
             kernel_width=0.25)                          # Similarity
         collector[img_path] = (top_pred, similarities, lime, limet)
-        limetree.logger.debug(f'Progress: {i/i_len:3.0d}')
+        limetree.logger.debug(f'Progress: {100*i/i_len:3.0f}')
 
     with open(PICKLE_FILE.format(SAMPLE_SIZE), 'wb') as f:
         pickle.dump(collector, f, protocol=pickle.HIGHEST_PROTOCOL)
+
+
+def process_data(pickle_file):
+    """Processes the data pickle file."""
+    with open(pickle_file, 'rb') as f:
+        collector = pickle.load(f)
+
+    print(f'Number of processed images: {len(collector.keys())}')
+    top_classes, lime_scores, limet_scores = limetree.process_loss(collector)
+    lime_scores_summary = limetree.summarise_loss_lime(lime_scores, top_classes)
+    limet_scores_summary = limetree.summarise_loss_limet(limet_scores, top_classes)
+
+    pickle_file_dir = os.path.dirname(pickle_file)
+    pickle_file_base = f'processed_{os.path.basename(pickle_file)}'
+    pickle_file_ = os.path.join(pickle_file_dir, pickle_file_base)
+
+    with open(pickle_file_, 'wb') as f:
+        pickle.dump((lime_scores_summary, limet_scores_summary),
+                    f, protocol=pickle.HIGHEST_PROTOCOL)
 
 
 if __name__ == '__main__':
@@ -79,6 +99,10 @@ if __name__ == '__main__':
         Runs image experiments with all images.
         Execute with:
         `python experiments.py img /path/to/a/folder/with/images`
+    proc
+        Processes the data for plotting.
+        Execute with:
+        `python experiments.py proc /path/to/a/pickle/file.pickle`
     """
     if USE_GPU:
         process_images = process_images_gpu
@@ -98,5 +122,8 @@ if __name__ == '__main__':
         SAMPLE_SIZE = len(image_paths)
         print(f'Trying {SAMPLE_SIZE} images.')
         process_images(image_paths)
+    elif len(sys.argv) == 3 and sys.argv[1] == 'proc':
+        print('Processing experiment data for plotting.')
+        process_data(sys.argv[2])
     else:
         print('Nothing to do.')
