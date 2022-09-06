@@ -642,32 +642,11 @@ def compute_loss(pred_idxs, similarities, diff, diff_type):
     else:
         for depth, depth_dict in diff.items():
             loss_collector[depth] = dict()
+
+            # Cumulative loss
             for classes_no, diff_ in depth_dict.items():
                 assert not set(diff_.keys()).difference(limet_measurements)
 
-                # Individual loss
-                mse = lime_loss(diff_['diffs'].T.flatten())
-                mseR = lime_loss(diff_['diffsR'].T.flatten())
-
-                mseF = lime_loss(diff_['diffs_fixed'].T.flatten())
-                mseFR = lime_loss(diff_['diffs_fixedR'].T.flatten())
-
-                similarities_ = np.tile(similarities, classes_no)
-                wmse = lime_loss(
-                    diff_['diffs_weighted'].T.flatten(),
-                    weights=similarities_)
-                wmseR = lime_loss(
-                    diff_['diffs_weightedR'].T.flatten(),
-                    weights=similarities_)
-
-                wmseF = lime_loss(
-                    diff_['diffs_fixed_weighted'].T.flatten(),
-                    weights=similarities_)
-                wmseFR = lime_loss(
-                    diff_['diffs_fixed_weightedR'].T.flatten(),
-                    weights=similarities_)
-
-                # Cumulative loss
                 lt_mse = limet_loss(diff_['diffs'].T)
                 lt_mseR = limet_loss(diff_['diffsR'].T)
 
@@ -685,14 +664,44 @@ def compute_loss(pred_idxs, similarities, diff, diff_type):
                     diff_['diffs_fixed_weightedR'].T, weights=similarities)
 
                 loss_collector[depth][classes_no] = dict(
-                    mse=mse, mseR=mseR,                    # LIMEtree loss
-                    mseF=mseF, mseFR=mseFR,
-                    wmse= wmse, wmseR=wmseR,
-                    wmseF=wmseF, wmseFR=wmseFR,
                     lt_mse=lt_mse, lt_mseR=lt_mseR,        # LIMEtree loss
                     lt_mseF=lt_mseF, lt_mseFR=lt_mseFR,
                     lt_wmse= lt_wmse, lt_wmseR=lt_wmseR,
                     lt_wmseF=lt_wmseF, lt_wmseFR=lt_wmseFR)
+
+            # Individual loss -- for the tree modelling all the classes
+            max_classes_no = max(depth_dict.keys())
+            diff_ = depth_dict[max_classes_no]
+            for classes_no in range(max_classes_no):
+                assert not set(diff_.keys()).difference(limet_measurements)
+
+                mse = lime_loss(diff_['diffs'].T[classes_no, :])
+                mseR = lime_loss(diff_['diffsR'].T[classes_no, :])
+
+                mseF = lime_loss(diff_['diffs_fixed'].T[classes_no, :])
+                mseFR = lime_loss(diff_['diffs_fixedR'].T[classes_no, :])
+
+                # similarities_ = np.tile(similarities, classes_no)
+                wmse = lime_loss(
+                    diff_['diffs_weighted'].T[classes_no, :],
+                    weights=similarities)
+                wmseR = lime_loss(
+                    diff_['diffs_weightedR'].T[classes_no, :],
+                    weights=similarities)
+
+                wmseF = lime_loss(
+                    diff_['diffs_fixed_weighted'].T[classes_no, :],
+                    weights=similarities)
+                wmseFR = lime_loss(
+                    diff_['diffs_fixed_weightedR'].T[classes_no, :],
+                    weights=similarities)
+
+                assert classes_no + 1 in loss_collector[depth]
+                loss_collector[depth][classes_no + 1].update(dict(
+                    mse=mse, mseR=mseR,                    # LIME loss
+                    mseF=mseF, mseFR=mseFR,
+                    wmse= wmse, wmseR=wmseR,
+                    wmseF=wmseF, wmseFR=wmseFR))
 
     return loss_collector
 
