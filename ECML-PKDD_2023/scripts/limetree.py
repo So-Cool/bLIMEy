@@ -436,10 +436,10 @@ def explain_image(image_path, classifier,
             class_ids = top_three_classes[:classes_no]
             if classes_no == 1:
                 class_probs =  sampled_data_probabilities[:, class_ids[0]]
-                class_probsR = sampled_data_probabilities[:, class_ids[0]]
+                class_probsR = sampled_data_probabilitiesR[:, class_ids[0]]
             else:
                 class_probs = sampled_data_probabilities[:, class_ids]
-                class_probsR = sampled_data_probabilities[:, class_ids]
+                class_probsR = sampled_data_probabilitiesR[:, class_ids]
            
             # LIMEtree
             tree = sklearn.tree.DecisionTreeRegressor(
@@ -714,6 +714,8 @@ def process_loss(loss_collector):
         loss = compute_loss(top_pred, similarities, limet, 'limet')
         limet_scores.append(loss)
 
+    assert len(lime_scores) == len(limet_scores)
+    logger.debug(f'Number of processed images: {len(limet_scores)}')
     return top_classes, lime_scores, limet_scores
 
 
@@ -788,7 +790,7 @@ def summarise_loss_limet(limet_loss, top_classes, rounding=2):
 
 def plot_loss_summary(lime_scores_summary, limet_scores_summary, class_id,
                       use_limet_loss=False, use_weighted=True, use_random=False,
-                      fontsize=16):
+                      err_style_band=True, fontsize=16):
     if use_limet_loss:
         if use_weighted:
             if use_random:
@@ -832,27 +834,13 @@ def plot_loss_summary(lime_scores_summary, limet_scores_summary, class_id,
     limet = limet_scores_summary[limet_loss_key][class_id]
     limetf = limet_scores_summary[limetf_loss_key][class_id]
 
-    plt.figure(figsize=(8, 6))
+    fig = plt.figure(figsize=(8, 4))
     cc = plt.get_cmap('tab10')  # Set3
     colours = [plt_colors.rgb2hex(cc(i)) for i in range(cc.N)]
 
-    # LIMEtree loss
-    y_, err_ = [], []
     x_ = sorted(limet.keys())
-    for x in x_:
-        y_.append(limet[x][0])
-        err_.append(limet[x][1])
-    plt.errorbar(x_, y_, yerr=err_, label='\\textbf{LIMEt}',
-                 solid_capstyle='projecting', capsize=5, color=colours[0])
-
-    # (Fixed) LIMEtree loss
-    y_, err_ = [], []
-    x_ = sorted(limetf.keys())
-    for x in x_:
-        y_.append(limetf[x][0])
-        err_.append(limetf[x][1])
-    plt.errorbar(x_, y_, yerr=err_, label='\\(\\underline{\\textbf{LIMEt}}\\)',
-                 solid_capstyle='projecting', capsize=5, color=colours[1])
+    x_t = sorted(limetf.keys())
+    assert np.array_equal(x_, x_t)
 
     # LIME loss
     lime_range = [x_[0], x_[-1]]
@@ -863,8 +851,41 @@ def plot_loss_summary(lime_scores_summary, limet_scores_summary, class_id,
         lime_range, 2*[lime_mean-lime_var], 2*[lime_mean+lime_var],
         alpha=0.3, color=colours[2])
 
+    # LIMEtree loss
+    y_, err_ = [], []
+    for x in x_:
+        y_.append(limet[x][0])
+        err_.append(limet[x][1])
+    if err_style_band:
+        y_np, err_np = np.array(y_), np.array(err_)
+        plt.plot(x_, y_, label='\\textbf{LIMEt}', color=colours[0])
+        plt.fill_between(
+            x_, y_np-err_np, y_np+err_np, alpha=0.3, color=colours[0])
+    else:
+        plt.errorbar(x_, y_, yerr=err_, label='\\textbf{LIMEt}',
+                    solid_capstyle='projecting', capsize=5, color=colours[0])
+
+    # (Fixed) LIMEtree loss
+    y_, err_ = [], []
+    for x in x_:
+        y_.append(limetf[x][0])
+        err_.append(limetf[x][1])
+    if err_style_band:
+        y_np, err_np = np.array(y_), np.array(err_)
+        plt.plot(
+            x_, y_, label='\\(\\underline{\\textbf{LIMEt}}\\)',
+            color=colours[1])
+        plt.fill_between(
+            x_, y_np-err_np, y_np+err_np, alpha=0.3, color=colours[1])
+    else:
+        plt.errorbar(
+            x_, y_, yerr=err_, label='\\(\\underline{\\textbf{LIMEt}}\\)',
+            solid_capstyle='projecting', capsize=5, color=colours[1])
+
     plt.tick_params(axis='x', labelsize=fontsize)
     plt.tick_params(axis='y', labelsize=fontsize)
+    fig.axes[0].xaxis.set_major_formatter(plt.FuncFormatter(
+        lambda val, _: f'{100*val:.0f}\%'))
     # plt.xlim(-0.1, 1.1)
     # plt.ylim(-.1, .1)
 
@@ -872,5 +893,6 @@ def plot_loss_summary(lime_scores_summary, limet_scores_summary, class_id,
                frameon=True, framealpha=.75)  # title='Method:', facecolor='white'
     plt.tight_layout()
 
-    plt.savefig(f'_figures/loss-cls{class_id}-{stub}.pdf',
-                dpi=300, bbox_inches='tight', pad_inches=0)
+    save_path = f'_figures/loss-cls{class_id}-{stub}.pdf'
+    print(f'Saving to: {save_path}')
+    plt.savefig(save_path, dpi=300, bbox_inches='tight', pad_inches=0)
