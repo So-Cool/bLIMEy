@@ -24,3 +24,11 @@ of black-box predictions (bLIMEy). The list of manuscripts is enclosed below.
 
 [ir]: https://arxiv.org/abs/2008.07007
 [dami21]: https://github.com/So-Cool/bLIMEy/tree/master/DAMI_2021
+
+## Consistent Explanations of Multiple Classes with LIMEtree ##
+
+* The manuscript is available on [arXiv][limetree].
+* The code is available in the [`ECML-PKDD_2023` directory][ecmlpkdd23].
+
+[limetree]: https://arxiv.org/abs/2005.01427
+[ecmlpkdd23]: https://github.com/So-Cool/bLIMEy/tree/master/ECML-PKDD_2023

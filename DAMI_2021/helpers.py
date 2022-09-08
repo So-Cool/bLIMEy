@@ -38,8 +38,8 @@ import scripts.image_classifier as imgclf
 
 # warnings.simplefilter('ignore', RuntimeWarning)
 
-SEG_MSG = ('The segmentation array should encode unique segments with a '
-           'continuous sequence of integers starting at 1.')
+SEG_MSG = ('Slic segmenter failed. '
+           'Try upgrading to scikit-image 0.19.2 or higher.')
 
 
 def plot_bar_exp(
@@ -174,7 +174,7 @@ def process_image(
     for i in range(*segments_search_range):
         try:
             segmenter = fatf_segmentation.Slic(img, n_segments=i)
-        except ValueError as e:
+        except RuntimeError as e:
             if str(e) == SEG_MSG:
                 continue
             else:

@@ -43,7 +43,18 @@ jobs:
         wget https://raw.githubusercontent.com/fat-forensics/resources/master/surrogates_overview/scripts/__init__.py -O DAMI_2021/scripts/__init__.py
         wget https://raw.githubusercontent.com/fat-forensics/resources/master/surrogates_overview/scripts/image_classifier.py -O DAMI_2021/scripts/image_classifier.py
         wget https://raw.githubusercontent.com/fat-forensics/resources/master/surrogates_overview/scripts/imagenet_label_map.py -O DAMI_2021/scripts/imagenet_label_map.py
+        mkdir -p ECML-PKDD_2023/scripts
+        wget https://raw.githubusercontent.com/fat-forensics/resources/master/surrogates_overview/scripts/__init__.py -O ECML-PKDD_2023/scripts/__init__.py
+        wget https://raw.githubusercontent.com/fat-forensics/resources/master/surrogates_overview/scripts/image_classifier.py -O ECML-PKDD_2023/scripts/image_classifier.py
+        wget https://raw.githubusercontent.com/fat-forensics/resources/master/surrogates_overview/scripts/imagenet_label_map.py -O ECML-PKDD_2023/scripts/imagenet_label_map.py
+        cp DAMI_2021/helpers.py ECML-PKDD_2023/scripts/
     - name: Test HCML 2019
       run: pytest --nbval HCML_2019/ --sanitize-with .nbval_sanitize_file.cfg
     - name: Test DAMI 2021
-      run: pytest --nbval DAMI_2021/ --sanitize-with .nbval_sanitize_file.cfg
+      run: |
+        mkdir -p DAMI_2021/_figures
+        pytest --nbval DAMI_2021/ --sanitize-with .nbval_sanitize_file.cfg
+    - name: Test ECML-PKDD 2023
+      run: |
+        mkdir -p ECML-PKDD_2023/_figures
+        pytest --nbval ECML-PKDD_2023/ --sanitize-with .nbval_sanitize_file.cfg
