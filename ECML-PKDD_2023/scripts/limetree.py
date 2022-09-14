@@ -311,7 +311,8 @@ def explain_image(image_path, classifier,
                   n_segments=13,                              # Slic Segmenter
                   occlusion_colour='black',                   # Occluder
                   generate_complete_sample=True,              # Sampler
-                  kernel_width=0.25                           # Similarity
+                  kernel_width=0.25,                          # Similarity
+                  train_on_random=False                       # Training on random occlusion
                   ):
     logger.debug(f'Image: {image_path}')
     img = np.asarray(Image.open(image_path))
@@ -409,7 +410,12 @@ def explain_image(image_path, classifier,
 
         clf_weighted = sklearn.linear_model.Ridge(
             alpha=1, fit_intercept=True, random_state=random_seed)
-        clf_weighted.fit(sampled_data, class_probs, sample_weight=similarities)
+        if train_on_random:
+            clf_weighted.fit(
+                sampled_data, class_probsR, sample_weight=similarities)
+        else:
+            clf_weighted.fit(
+                sampled_data, class_probs, sample_weight=similarities)
 
         preds = clf_weighted.predict(sampled_data)
         diffs_weighted = class_probs - preds
@@ -417,7 +423,10 @@ def explain_image(image_path, classifier,
 
         clf = sklearn.linear_model.Ridge(
             alpha=1, fit_intercept=True, random_state=random_seed)
-        clf.fit(sampled_data, class_probs)
+        if train_on_random:
+            clf.fit(sampled_data, class_probsR)
+        else:
+            clf.fit(sampled_data, class_probs)
 
         preds = clf.predict(sampled_data)
         diffs = class_probs - preds
@@ -444,7 +453,10 @@ def explain_image(image_path, classifier,
             # LIMEtree
             tree = sklearn.tree.DecisionTreeRegressor(
                 random_state=random_seed, max_depth=depth_bound)
-            tree.fit(sampled_data, class_probs)
+            if train_on_random:
+                tree.fit(sampled_data, class_probsR)
+            else:
+                tree.fit(sampled_data, class_probs)
             
             pred = tree.predict(sampled_data)
             diffs = class_probs - pred
@@ -452,8 +464,12 @@ def explain_image(image_path, classifier,
 
             tree_weighted = sklearn.tree.DecisionTreeRegressor(
                 random_state=random_seed, max_depth=depth_bound)
-            tree_weighted.fit(
-                sampled_data, class_probs, sample_weight=similarities)
+            if train_on_random:
+                tree_weighted.fit(
+                    sampled_data, class_probsR, sample_weight=similarities)
+            else:
+                tree_weighted.fit(
+                    sampled_data, class_probs, sample_weight=similarities)
 
             pred = tree_weighted.predict(sampled_data)
             diffs_weighted = class_probs - pred
@@ -544,7 +560,8 @@ def explain_image_exp(
         n_segments=13,                              # Slic Segmenter
         occlusion_colour='black',                   # Occluder
         generate_complete_sample=True,              # Sampler
-        kernel_width=0.25                           # Similarity
+        kernel_width=0.25,                          # Similarity
+        train_on_random=False                       # Training on random occlusion
         ):
     clf = imgclf.ImageClassifier(use_gpu=use_gpu)
     return explain_image(
@@ -556,7 +573,8 @@ def explain_image_exp(
         n_segments=n_segments,
         occlusion_colour=occlusion_colour,
         generate_complete_sample=generate_complete_sample,
-        kernel_width=kernel_width)
+        kernel_width=kernel_width,
+        train_on_random=train_on_random)
 
 
 def lime_loss(residuals, weights=None):
