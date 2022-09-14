@@ -19,7 +19,11 @@ import scripts.limetree as limetree
 USE_GPU = False
 ENABLE_LOGGING = False
 SAMPLE_SIZE = 150
-PICKLE_FILE = 'limetree_{:d}.pickle'
+USE_RANDOM_TRAINING = False
+if USE_RANDOM_TRAINING:
+    PICKLE_FILE = 'limetree_{:d}_random.pickle'
+else:
+    PICKLE_FILE = 'limetree_{:d}.pickle'
 
 if USE_GPU:
     import scripts.image_classifier as imgclf
@@ -34,6 +38,7 @@ if ENABLE_LOGGING:
 
 def process_images_cpu(image_paths):
     """[CPU] Evaluates effectiveness of LIMEtree for a collection of images."""
+    # TODO: Add a switch for choosing the random surrogate training sample
     assert not USE_GPU
     collector = dict()
     processes = int(mp.cpu_count()/2) - 1
@@ -60,7 +65,8 @@ def process_images_gpu(image_paths):
             n_segments=13,                              # Slic Segmenter
             occlusion_colour='black',                   # Occluder
             generate_complete_sample=True,              # Sampler
-            kernel_width=0.25)                          # Similarity
+            kernel_width=0.25,                          # Similarity
+            train_on_random=USE_RANDOM_TRAINING)        # Training on random occlusion
         collector[img_path] = (top_pred, similarities, lime, limet)
         limetree.logger.debug(f'Progress: {100*i/i_len:3.0f}')
 

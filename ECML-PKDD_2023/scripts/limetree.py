@@ -314,6 +314,7 @@ def explain_image(image_path, classifier,
                   kernel_width=0.25,                          # Similarity
                   train_on_random=False                       # Training on random occlusion
                   ):
+    logger.debug(f'Is RANDOM sample used for surrogate training: {train_on_random}')
     logger.debug(f'Image: {image_path}')
     img = np.asarray(Image.open(image_path))
 
