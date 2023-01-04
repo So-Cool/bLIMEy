@@ -8,6 +8,7 @@ This module implements experiments executor for LIMEtree.
 # Author: Kacper Sokol <k.sokol@bristol.ac.uk>
 # License: new BSD
 
+import functools
 import logging
 import os.path
 import pickle
@@ -38,12 +39,13 @@ if ENABLE_LOGGING:
 
 def process_images_cpu(image_paths):
     """[CPU] Evaluates effectiveness of LIMEtree for a collection of images."""
-    # TODO: Add a switch for choosing the random surrogate training sample
     assert not USE_GPU
     collector = dict()
     processes = int(mp.cpu_count()/2) - 1
+    _explain_image_exp = functools.partial(
+        limetree.explain_image_exp, train_on_random=USE_RANDOM_TRAINING)
     with Pool(processes=processes) as pool:
-        for imp in pool.imap_unordered(limetree.explain_image_exp, image_paths):
+        for imp in pool.imap_unordered(_explain_image_exp, image_paths):
             img_path, top_pred, similarities, lime, limet = imp
             collector[img_path] = (top_pred, similarities, lime, limet)
 
