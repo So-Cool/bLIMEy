@@ -8,6 +8,7 @@ This module implements experiments executor for LIMEtree.
 # Author: Kacper Sokol <k.sokol@bristol.ac.uk>
 # License: new BSD
 
+import functools
 import logging
 import os.path
 import pickle
@@ -19,7 +20,11 @@ import scripts.limetree as limetree
 USE_GPU = False
 ENABLE_LOGGING = False
 SAMPLE_SIZE = 150
-PICKLE_FILE = 'limetree_{:d}.pickle'
+USE_RANDOM_TRAINING = False
+if USE_RANDOM_TRAINING:
+    PICKLE_FILE = 'limetree_{:d}_random.pickle'
+else:
+    PICKLE_FILE = 'limetree_{:d}.pickle'
 
 if USE_GPU:
     import scripts.image_classifier as imgclf
@@ -37,8 +42,10 @@ def process_images_cpu(image_paths):
     assert not USE_GPU
     collector = dict()
     processes = int(mp.cpu_count()/2) - 1
+    _explain_image_exp = functools.partial(
+        limetree.explain_image_exp, train_on_random=USE_RANDOM_TRAINING)
     with Pool(processes=processes) as pool:
-        for imp in pool.imap_unordered(limetree.explain_image_exp, image_paths):
+        for imp in pool.imap_unordered(_explain_image_exp, image_paths):
             img_path, top_pred, similarities, lime, limet = imp
             collector[img_path] = (top_pred, similarities, lime, limet)
 
@@ -60,7 +67,8 @@ def process_images_gpu(image_paths):
             n_segments=13,                              # Slic Segmenter
             occlusion_colour='black',                   # Occluder
             generate_complete_sample=True,              # Sampler
-            kernel_width=0.25)                          # Similarity
+            kernel_width=0.25,                          # Similarity
+            train_on_random=USE_RANDOM_TRAINING)        # Training on random occlusion
         collector[img_path] = (top_pred, similarities, lime, limet)
         limetree.logger.debug(f'Progress: {100*i/i_len:3.0f}')
 
