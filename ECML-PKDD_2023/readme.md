@@ -1,11 +1,12 @@
 [![new BSD](https://img.shields.io/github/license/So-Cool/bLIMEy.svg)](https://github.com/So-Cool/bLIMEy/blob/master/LICENCE)
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/So-Cool/bLIMEy/master?filepath=ECML-PKDD_2023)
 
-# Consistent Explanations of Multiple Classes with LIMEtree #
+# LIMEtree: Consistent and Faithful Surrogate Explanations of Multiple Classes #
 
 This directory contains a collection of Jupyter Notebooks that can be used to
 reproduce the explanations, experiments and plots reported in the
-"*Consistent Explanations of Multiple Classes with LIMEtree*" paper.
+"*LIMEtree: Consistent and Faithful Surrogate Explanations of Multiple Classes*"
+paper.
 
 The manuscript is available on [arXiv].
 
@@ -38,33 +39,34 @@ wget https://raw.githubusercontent.com/fat-forensics/resources/master/surrogates
 
 ## Abstract ##
 
-Explainable machine learning provides numerous tools to better understand
-predictive models and their decisions, however many of these methods are
-limited to producing explanations of a single class.
-While such insights can be generated for different classes, reasoning over
-them to obtain a complete view my be difficult or even impossible when they
-present similar, competing or contradictory evidence.
-To address this shortcoming we introduce a novel paradigm of
+Explainable machine learning provides tools to better understand predictive
+models and their decisions, but many such methods are limited to producing
+insights with respect to a single class.
+When generating explanations for several classes, reasoning over them to
+obtain a complete view may be difficult since they can present competing or
+contradictory evidence.
+To address this issue we introduce a novel paradigm of
 *multi-class explanations*.
 We outline the theory behind such techniques and propose a local surrogate
-based on multi-output regression trees -- called LIMEtree -- which offers
-*faithful* and *consistent* explanations of multiple classes for individual
-predictions while being post-hoc, model-agnostic and data-universal.
+model based on multi-output regression trees -- called `LIMEtree` -- which
+offers *faithful* and *consistent* explanations of multiple classes for
+individual predictions while being post-hoc, model-agnostic and data-universal.
 In addition to strong fidelity guarantees, our implementation supports
-(interactive) *customisation* of the explanatory insights and delivers a
-range of diverse explanation types, including counterfactual statements
-praised in the literature.
-We evaluate our algorithm with a collection of quantitative experiments and
-a preliminary user study on an image classification task, comparing it
-against LIME.
-Our analysis demonstrates the benefits of multi-class explanations and
-superiority of our method across a wide array of scenarios.
+(interactive) *customisation* of the explanatory insights and delivers a range
+of diverse explanation types, including counterfactual statements favoured in
+the literature.
+We evaluate our algorithm with a collection of quantitative experiments, a
+qualitative analysis based on explainability desiderata and a preliminary user
+study on an image classification task, comparing it to LIME.
+Our contributions demonstrate the benefits of multi-class explanations and
+wide-ranging advantages of our method across a diverse set scenarios.
 
 ## BibTeX ##
 
 ```
 @article{sokol2020limetree,
-  title={Consistent Explanations of Multiple Classes with {LIMEtree}},
+  title={{LIMEtree}: {Consistent} and Faithful Surrogate Explanations of
+         Multiple Classes},
   author={Sokol, Kacper and Flach, Peter},
   journal={arXiv preprint arXiv:2005.01427},
   url={https://arxiv.org/abs/2005.01427},
