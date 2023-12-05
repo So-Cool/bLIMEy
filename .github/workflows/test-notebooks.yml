@@ -28,7 +28,7 @@ jobs:
           texlive \
           texlive-xetex \
           texlive-fonts-recommended \
-          texlive-generic-recommended
+          texlive-latex-recommended
     - name: Install dependencies 💾
       run: |
         pip install -r requirements-ci.txt
