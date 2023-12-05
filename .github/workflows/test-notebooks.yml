@@ -3,10 +3,10 @@ on: push
 jobs:
   build-n-deploy:
     name: Test 🔧
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-22.04
     steps:
     - name: Checkout code 🛎️
-      uses: actions/checkout@v2.3.1
+      uses: actions/checkout@v3
       with:
         persist-credentials: false
     - name: Cache models and data
@@ -16,7 +16,7 @@ jobs:
           /home/runner/.cache/torch
         key: ${{ runner.os }}-data_models
     - name: Set up Python 3.7 🐍
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v4
       with:
         python-version: 3.7
         cache: 'pip'
