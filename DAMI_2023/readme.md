@@ -35,25 +35,33 @@ wget https://raw.githubusercontent.com/fat-forensics/resources/master/surrogates
 
 ## Abstract ##
 
-Interpretable representations are the backbone of many black-box explainers.
+Interpretable representations are the backbone of many explainers that target
+black-box predictive systems based on artificial intelligence and machine
+learning algorithms.
 They translate the low-level data representation necessary for good predictive
 performance into high-level human-intelligible concepts used to convey the
-explanation.
+explanatory insights.
 Notably, the explanation type and its cognitive complexity are directly
-controlled by the interpretable representation, allowing to target a particular
-audience and use case.
-However, many explainers that rely on interpretable representations overlook
-their merit and fall back on default solutions, which may introduce implicit
-assumptions, thereby degrading the explanatory power of such techniques.
+controlled by the interpretable representation, tweaking which allows to target
+a particular audience and use case.
+However, many explainers built upon interpretable representations overlook
+their merit and fall back on default solutions that often carry implicit
+assumptions, thereby degrading the explanatory power and reliability of such
+techniques.
 To address this problem, we study properties of interpretable representations
 that encode presence and absence of human-comprehensible concepts.
-We show how they are operationalised for tabular, image and text data,
-discussing their strengths and weaknesses.
-This allows us to analyse their explanatory properties in the context of tabular
-data, where a linear model is used to quantify the importance of interpretable
-concepts.
-Our findings show benefits of tree-based interpretable representations, and
-sensitivity of images to segmentation granularity and occlusion colour.
+We demonstrate how they are operationalised for tabular, image and text data;
+discuss their assumptions, strengths and weaknesses; identify their core
+building blocks; and scrutinise their configuration and parameterisation.
+In particular, this in-depth analysis allows us to pinpoint their explanatory
+properties, desiderata and scope for (malicious) manipulation in the context of
+tabular data where a linear model is used to quantify the influence of
+interpretable concepts on a black-box prediction.
+Our findings lead to a range of recommendations for designing trustworthy
+interpretable representations;
+specifically, the benefits of class-aware (supervised) discretisation of
+tabular data, e.g., with decision trees, and sensitivity of image interpretable
+representations to segmentation granularity and occlusion colour.
 
 ## BibTeX ##
 ```
