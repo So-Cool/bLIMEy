@@ -3,10 +3,10 @@ on: push
 jobs:
   build-n-deploy:
     name: Test 🔧
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-22.04
     steps:
     - name: Checkout code 🛎️
-      uses: actions/checkout@v2.3.1
+      uses: actions/checkout@v3
       with:
         persist-credentials: false
     - name: Cache models and data
@@ -16,7 +16,7 @@ jobs:
           /home/runner/.cache/torch
         key: ${{ runner.os }}-data_models
     - name: Set up Python 3.7 🐍
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v4
       with:
         python-version: 3.7
         cache: 'pip'
@@ -28,7 +28,7 @@ jobs:
           texlive \
           texlive-xetex \
           texlive-fonts-recommended \
-          texlive-generic-recommended
+          texlive-latex-recommended
     - name: Install dependencies 💾
       run: |
         pip install -r requirements-ci.txt
@@ -39,21 +39,21 @@ jobs:
         python -c 'import torchvision.models as models; models.alexnet(pretrained=True);'
     - name: Get scripts
       run: |
-        mkdir -p DAMI_2021/scripts
-        wget https://raw.githubusercontent.com/fat-forensics/resources/master/surrogates_overview/scripts/__init__.py -O DAMI_2021/scripts/__init__.py
-        wget https://raw.githubusercontent.com/fat-forensics/resources/master/surrogates_overview/scripts/image_classifier.py -O DAMI_2021/scripts/image_classifier.py
-        wget https://raw.githubusercontent.com/fat-forensics/resources/master/surrogates_overview/scripts/imagenet_label_map.py -O DAMI_2021/scripts/imagenet_label_map.py
+        mkdir -p DAMI_2023/scripts
+        wget https://raw.githubusercontent.com/fat-forensics/resources/master/surrogates_overview/scripts/__init__.py -O DAMI_2023/scripts/__init__.py
+        wget https://raw.githubusercontent.com/fat-forensics/resources/master/surrogates_overview/scripts/image_classifier.py -O DAMI_2023/scripts/image_classifier.py
+        wget https://raw.githubusercontent.com/fat-forensics/resources/master/surrogates_overview/scripts/imagenet_label_map.py -O DAMI_2023/scripts/imagenet_label_map.py
         mkdir -p ECML-PKDD_2023/scripts
         wget https://raw.githubusercontent.com/fat-forensics/resources/master/surrogates_overview/scripts/__init__.py -O ECML-PKDD_2023/scripts/__init__.py
         wget https://raw.githubusercontent.com/fat-forensics/resources/master/surrogates_overview/scripts/image_classifier.py -O ECML-PKDD_2023/scripts/image_classifier.py
         wget https://raw.githubusercontent.com/fat-forensics/resources/master/surrogates_overview/scripts/imagenet_label_map.py -O ECML-PKDD_2023/scripts/imagenet_label_map.py
-        cp DAMI_2021/helpers.py ECML-PKDD_2023/scripts/
+        cp DAMI_2023/helpers.py ECML-PKDD_2023/scripts/
     - name: Test HCML 2019
       run: pytest --nbval HCML_2019/ --sanitize-with .nbval_sanitize_file.cfg
-    - name: Test DAMI 2021
+    - name: Test DAMI 2023
       run: |
-        mkdir -p DAMI_2021/_figures
-        pytest --nbval DAMI_2021/ --sanitize-with .nbval_sanitize_file.cfg
+        mkdir -p DAMI_2023/_figures
+        pytest --nbval DAMI_2023/ --sanitize-with .nbval_sanitize_file.cfg
     - name: Test ECML-PKDD 2023
       run: |
         mkdir -p ECML-PKDD_2023/_figures
