@@ -20,12 +20,13 @@ import scripts.limetree as limetree
 from torchvision.datasets import CIFAR10
 
 ENABLE_LOGGING = not False
-SAMPLE_SIZE = 150
+SAMPLE_SIZE = 200
 USE_RANDOM_TRAINING = False
 if USE_RANDOM_TRAINING:
     PICKLE_FILE = 'limetree_{:d}_random.pickle'
 else:
     PICKLE_FILE = 'limetree_{:d}.pickle'
+PICKLE_FILE_TEMP = 'limetree_temp_{:d}.pickle'
 
 import scripts.image_classifier_cifar10 as imgclf
 
@@ -52,10 +53,15 @@ def process_images_gpu(image_paths):
             generate_complete_sample=True,              # Sampler
             kernel_width=0.25,                          # Similarity
             train_on_random=USE_RANDOM_TRAINING)        # Training on random occlusion
+        img_path = i
         collector[img_path] = (top_pred, similarities, lime, limet)
-        limetree.logger.debug(f'Progress: {100*i/i_len:3.0f}')
+        limetree.logger.debug(f'Progress: {100*i/i_len:3.0f} [{i}]')
         # TODO
-        if i > 100: break
+        #if i > 10: break
+        if not i%50:
+            limetree.logger.debug(f'Dumping temp')
+            with open(PICKLE_FILE_TEMP.format(SAMPLE_SIZE), 'wb') as f:
+                pickle.dump(collector, f, protocol=pickle.HIGHEST_PROTOCOL)
 
     with open(PICKLE_FILE.format(SAMPLE_SIZE), 'wb') as f:
         pickle.dump(collector, f, protocol=pickle.HIGHEST_PROTOCOL)
