@@ -316,7 +316,12 @@ def explain_image(image_path, classifier,
                   ):
     logger.debug(f'Is RANDOM sample used for surrogate training: {train_on_random}')
     logger.debug(f'Image: {image_path}')
-    img = np.asarray(Image.open(image_path))
+
+    if isinstance(image_path, str):
+        img = np.asarray(Image.open(image_path))
+    else:
+        img = np.asarray(image_path)
+        image_path = None
 
     assert segmenter_type in ('slic', 'quick-shift'), 'Unknown segmenter.'
     logger.debug(f'Segmenter in use: {segmenter_type}')
