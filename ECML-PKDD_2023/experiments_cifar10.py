@@ -19,7 +19,7 @@ import scripts.limetree as limetree
 
 from torchvision.datasets import CIFAR10
 
-ENABLE_LOGGING = False
+ENABLE_LOGGING = not False
 SAMPLE_SIZE = 150
 USE_RANDOM_TRAINING = False
 if USE_RANDOM_TRAINING:
@@ -42,7 +42,7 @@ def process_images_gpu(image_paths):
     cifar10 = CIFAR10(image_paths, train=False)
     i_len = len(cifar10)
 
-    for i, (img, target) in enumerate(image_paths):
+    for i, (img, target) in enumerate(cifar10):
         img_path, top_pred, similarities, lime, limet = limetree.explain_image(
             img, clf, random_seed=42, n_top_classes=3,
             batch_size=100,                             # Processing
@@ -107,11 +107,7 @@ if __name__ == '__main__':
         process_images(image_paths)
     elif len(sys.argv) == 3 and sys.argv[1] == 'img':
         print('Running full image experiments.')
-        image_paths =  helpers.select_images(
-            sys.argv[2], sample_size=None, random_seed=None)
-        SAMPLE_SIZE = len(image_paths)
-        print(f'Trying {SAMPLE_SIZE} images.')
-        process_images(image_paths)
+        process_images(sys.argv[2])
     elif len(sys.argv) == 3 and sys.argv[1] == 'proc':
         print('Processing experiment data for plotting.')
         process_data(sys.argv[2])
