@@ -929,3 +929,70 @@ def plot_loss_summary(lime_scores_summary, limet_scores_summary, class_id,
     save_path = f'_figures/loss-cls{class_id}-{stub}.pdf'
     print(f'Saving to: {save_path}')
     plt.savefig(save_path, dpi=300, bbox_inches='tight', pad_inches=0)
+
+
+def tabulate_loss_summary(lime_scores_summary, limet_scores_summary, class_id,
+                          cutoff, scale_factor=1, latex=True,
+                          use_limet_loss=False, use_weighted=True, use_random=False):
+    if use_limet_loss:
+        if use_weighted:
+            if use_random:
+                stub = 'limet_weighted_random'
+                lime_loss_key, limetf_loss_key = 'lt_wmseR', 'lt_wmseFR'
+                limet_loss_key = lime_loss_key
+            else:
+                stub = 'limet_weighted_Xrandom'
+                lime_loss_key, limetf_loss_key = 'lt_wmse', 'lt_wmseF'
+                limet_loss_key = lime_loss_key
+        else:
+            if use_random:
+                stub = 'limet_Xweighted_random'
+                lime_loss_key, limetf_loss_key = 'lt_mseR', 'lt_mseFR'
+                limet_loss_key = lime_loss_key
+            else:
+                stub = 'limet_Xweighted_Xrandom'
+                lime_loss_key, limetf_loss_key = 'lt_mse', 'lt_mseF'
+                limet_loss_key = lime_loss_key
+    else:
+        if use_weighted:
+            if use_random:
+                stub = 'lime_weighted_random'
+                lime_loss_key, limetf_loss_key = 'wmseR', 'wmseFR'
+                limet_loss_key = lime_loss_key
+            else:
+                stub = 'lime_weighted_Xrandom'
+                lime_loss_key, limetf_loss_key = 'wmse', 'wmseF'
+                limet_loss_key = lime_loss_key
+        else:
+            if use_random:
+                stub = 'lime_Xweighted_random'
+                lime_loss_key, limetf_loss_key = 'mseR', 'mseFR'
+                limet_loss_key = lime_loss_key
+            else:
+                stub = 'lime_Xweighted_Xrandom'
+                lime_loss_key, limetf_loss_key = 'mse', 'mseF'
+                limet_loss_key = lime_loss_key
+
+    lime_mean, lime_var = lime_scores_summary[lime_loss_key][class_id]
+    limet = limet_scores_summary[limet_loss_key][class_id]
+    limetf = limet_scores_summary[limetf_loss_key][class_id]
+
+    limet_keys = sorted(list(limet.keys()))
+    limetf_keys = sorted(list(limetf.keys()))
+
+    limet_cutoff_idx = min(limet_keys, key=lambda x:abs(x-cutoff))
+    limetf_cutoff_idx = min(limetf_keys, key=lambda x:abs(x-cutoff))
+
+    results = {'lime': (lime_mean, lime_var),
+               'limet': limet[limet_cutoff_idx],
+               'limetf': limetf[limetf_cutoff_idx]}
+
+    if latex:
+        print(f'\\({scale_factor*results["lime"][0]:2.2f}\pm'
+              f'{scale_factor*results["lime"][1]:2.2f}\\)\n'
+              f'\\({scale_factor*results["limet"][0]:2.2f}\pm'
+              f'{scale_factor*results["limet"][1]:2.2f}\\)\n'
+              f'\\({scale_factor*results["limetf"][0]:2.2f}\pm'
+              f'{scale_factor*results["limetf"][1]:2.2f}\\)')
+
+    return results

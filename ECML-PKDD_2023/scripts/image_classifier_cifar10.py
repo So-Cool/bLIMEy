@@ -20,6 +20,12 @@ logger = logging.getLogger(__name__)
 CUDA_AVAILABLE = torch.cuda.is_available()
 DEVICE = torch.device('cuda:0' if CUDA_AVAILABLE else 'cpu')
 
+# import pickle
+# https://www.cs.toronto.edu/~kriz/cifar.html
+# with open('cifar-10-batches-py/batches.meta', 'rb') as fo:
+#     cf10meta = pickle.load(fo, encoding='bytes')
+# cf10labels = {i:j.decode() for i, j in enumerate(cf10meta.get(b'label_names'))}
+#
 # CIFAR10_LABELS = {
 #     0: 'airplane',
 #     1: 'automobile',
@@ -32,6 +38,13 @@ DEVICE = torch.device('cuda:0' if CUDA_AVAILABLE else 'cpu')
 #     8: 'ship',
 #     9: 'truck'
 # }
+#
+# import pickle
+# with open('/Users/kacper/Downloads/cifar-100-python/meta', 'rb') as fo:
+#     cf10meta = pickle.load(fo, encoding='bytes')
+# cf10labels_corse = {i:j.decode() for i, j in enumerate(cf10meta.get(b'coarse_label_names'))}
+# cf10labels_fine = {i:j.decode() for i, j in enumerate(cf10meta.get(b'fine_label_names'))}
+#
 CIFAR10_LABELS = {
     0: 'apple',
     1: 'aquarium_fish',
@@ -156,6 +169,11 @@ class ImageClassifier(object):
         self.class_idx = CIFAR10_LABELS
 
         # Get the model
+        # https://github.com/huyvnphan/PyTorch_CIFAR10
+        #
+        # https://github.com/huyvnphan/PyTorch_CIFAR10
+        # https://github.com/chenyaofo/pytorch-cifar-models/issues/4
+        # https://github.com/chenyaofo/image-classification-codebase/blob/master/conf/cifar100.conf
         # clf = torch.hub.load("chenyaofo/pytorch-cifar-models", "cifar10_resnet56", pretrained=True)
         clf = torch.hub.load("chenyaofo/pytorch-cifar-models", "cifar100_repvgg_a2", pretrained=True)
 
