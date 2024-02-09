@@ -891,11 +891,11 @@ def plot_loss_summary(lime_scores_summary, limet_scores_summary, class_id,
         err_.append(limet[x][1])
     if err_style_band:
         y_np, err_np = np.array(y_), np.array(err_)
-        plt.plot(x_, y_, label='{\\sc LIMEt}', color=colours[0])
+        plt.plot(x_, y_, label='{\\sc TREE}', color=colours[0])
         plt.fill_between(
             x_, y_np-err_np, y_np+err_np, alpha=0.3, color=colours[0])
     else:
-        plt.errorbar(x_, y_, yerr=err_, label='{\\sc LIMEt}',
+        plt.errorbar(x_, y_, yerr=err_, label='{\\sc TREE}',
                     solid_capstyle='projecting', capsize=5, color=colours[0])
 
     # (Fixed) LIMEtree loss
@@ -906,13 +906,13 @@ def plot_loss_summary(lime_scores_summary, limet_scores_summary, class_id,
     if err_style_band:
         y_np, err_np = np.array(y_), np.array(err_)
         plt.plot(
-            x_, y_, label='\\underline{{\\sc LIMEt}}',
+            x_, y_, label='\\underline{{\\sc TREE}}',
             color=colours[1])
         plt.fill_between(
             x_, y_np-err_np, y_np+err_np, alpha=0.3, color=colours[1])
     else:
         plt.errorbar(
-            x_, y_, yerr=err_, label='\\underline{{\\sc LIMEt}}',
+            x_, y_, yerr=err_, label='\\underline{{\\sc TREE}}',
             solid_capstyle='projecting', capsize=5, color=colours[1])
 
     plt.tick_params(axis='x', labelsize=fontsize)
