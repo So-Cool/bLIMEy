@@ -20,10 +20,10 @@ of black-box predictions (bLIMEy). The list of manuscripts is enclosed below.
 ## Interpretable Representations in Explainable AI: From Theory to Practice ##
 
 * The manuscript is available on [arXiv][ir].
-* The code is available in the [`DAMI_2023` directory][dami23].
+* The code is available in the [`DAMI_2024` directory][dami24].
 
 [ir]: https://arxiv.org/abs/2008.07007
-[dami23]: https://github.com/So-Cool/bLIMEy/tree/master/DAMI_2023
+[dami24]: https://github.com/So-Cool/bLIMEy/tree/master/DAMI_2024
 
 ## LIMEtree: Consistent and Faithful Surrogate Explanations of Multiple Classes ##
 
