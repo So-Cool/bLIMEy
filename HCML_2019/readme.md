@@ -1,5 +1,6 @@
 [![new BSD](https://img.shields.io/github/license/So-Cool/bLIMEy.svg)](https://github.com/So-Cool/bLIMEy/blob/master/LICENCE)
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/So-Cool/bLIMEy/master?filepath=HCML_2019)
+[![DOI](https://img.shields.io/badge/DOI-10.48550/arXiv.1910.13016-violet)][doi]
 
 # bLIMEy: Surrogate Prediction Explanations Beyond LIME #
 
@@ -43,7 +44,7 @@ using the example of LIME.
 ## BibTeX ##
 ```
 @article{sokol2019blimey,
-  title={b{LIME}y: {S}urrogate {P}rediction {E}xplanations {B}eyond {LIME}},
+  title={{bLIMEy}: {Surrogate} Prediction Explanations Beyond {LIME}},
   author={Sokol, Kacper and Hepburn, Alexander and Santos-Rodriguez, Raul
           and Flach, Peter},
   journal={2019 Workshop on Human-Centric Machine Learning (HCML 2019) at the
@@ -58,3 +59,4 @@ using the example of LIME.
 [HCML 2019]: https://sites.google.com/view/hcml-2019
 [arXiv]: https://arxiv.org/abs/1910.13016
 [a part of the FAT Forensics documentation]: https://fat-forensics.org/how_to/transparency/tabular-surrogates.html
+[doi]: https://doi.org/10.48550/arXiv.1910.13016
