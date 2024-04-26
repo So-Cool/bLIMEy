@@ -1,5 +1,6 @@
 [![new BSD](https://img.shields.io/github/license/So-Cool/bLIMEy.svg)](https://github.com/So-Cool/bLIMEy/blob/master/LICENCE)
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/So-Cool/bLIMEy/master?filepath=ECML-PKDD_2023)
+[![DOI](https://img.shields.io/badge/DOI-10.48550/arXiv.2005.01427-violet)][doi]
 
 # LIMEtree: Consistent and Faithful Surrogate Explanations of Multiple Classes #
 
@@ -27,7 +28,7 @@ FAT Forensics scripts:
 mkdir -p scripts
 
 # helpers.py
-cp ../DAMI_2023/helpers.py scripts/
+cp ../DAMI_2024/helpers.py scripts/
 
 # __init__.py
 wget https://raw.githubusercontent.com/fat-forensics/resources/master/surrogates_overview/scripts/__init__.py -O scripts/__init__.py
@@ -77,3 +78,4 @@ wide-ranging advantages of our method across a diverse set scenarios.
 [arXiv]: https://arxiv.org/abs/2005.01427
 [doc]: https://fat-forensics.org/how_to/index.html#transparency-how-to
 [events]: https://events.fat-forensics.org
+[doi]: https://doi.org/10.48550/arXiv.2005.01427
