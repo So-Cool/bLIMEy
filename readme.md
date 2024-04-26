@@ -11,7 +11,7 @@ of black-box predictions (bLIMEy). The list of manuscripts is enclosed below.
 
 ## bLIMEy: Surrogate Prediction Explanations Beyond LIME ##
 
-* The manuscript is available on [arXiv][blimey].
+* The manuscript is available [here][blimey].
 * The code is available in the [`HCML_2019` directory][hcml19].
 
 [blimey]: https://arxiv.org/abs/1910.13016
@@ -19,15 +19,15 @@ of black-box predictions (bLIMEy). The list of manuscripts is enclosed below.
 
 ## Interpretable Representations in Explainable AI: From Theory to Practice ##
 
-* The manuscript is available on [arXiv][ir].
+* The manuscript is available [here][ir].
 * The code is available in the [`DAMI_2024` directory][dami24].
 
-[ir]: https://arxiv.org/abs/2008.07007
+[ir]: https://doi.org/10.1007/s10618-024-01010-5
 [dami24]: https://github.com/So-Cool/bLIMEy/tree/master/DAMI_2024
 
 ## LIMEtree: Consistent and Faithful Surrogate Explanations of Multiple Classes ##
 
-* The manuscript is available on [arXiv][limetree].
+* The manuscript is available [here][limetree].
 * The code is available in the [`ECML-PKDD_2023` directory][ecmlpkdd23].
 
 [limetree]: https://arxiv.org/abs/2005.01427

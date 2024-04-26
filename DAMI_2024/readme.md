@@ -1,13 +1,16 @@
 [![new BSD](https://img.shields.io/github/license/So-Cool/bLIMEy.svg)](https://github.com/So-Cool/bLIMEy/blob/master/LICENCE)
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/So-Cool/bLIMEy/master?filepath=DAMI_2024)
+[![DOI](https://img.shields.io/badge/DOI-10.1007/s10618--024--01010--5-violet)][Springer]
 
 # Interpretable Representations in Explainable AI: From Theory to Practice #
 
 This directory contains a collection of Jupyter Notebooks that can be used to
 reproduce the plots and experiments reported in the
-"*Interpretable Representations in Explainable AI: From Theory to Practice*" paper.
+"*Interpretable Representations in Explainable AI: From Theory to Practice*" paper
+published in the *Special Issue on Explainable and Interpretable Machine Learning and Data Mining*
+of the Springer *Data Mining and Knowledge Discovery* journal.
 
-The manuscript is available on [arXiv].
+The manuscript is available on [Springer] and [arXiv].
 
 A collection of related resources -- illustrating how to build custom surrogates
 for tabular and image data -- is available as
@@ -65,16 +68,18 @@ representations to segmentation granularity and occlusion colour.
 
 ## BibTeX ##
 ```
-@article{sokol2020interpretable,
+@article{sokol2024interpretable,
   title={Interpretable Representations in Explainable {AI}:
-         {F}rom Theory to Practice},
+         {From} Theory to Practice},
   author={Sokol, Kacper and Flach, Peter},
-  journal={arXiv preprint arXiv:2008.07007},
-  url={https://arxiv.org/abs/2008.07007},
-  year={2020}
+  journal={Data Mining and Knowledge Discovery},
+  publisher={Springer},
+  doi={10.1007/s10618-024-01010-5},
+  year={2024}
 }
 ```
 
 [arXiv]: https://arxiv.org/abs/2008.07007
+[Springer]: https://doi.org/10.1007/s10618-024-01010-5
 [doc]: https://fat-forensics.org/how_to/index.html#transparency-how-to
 [events]: https://events.fat-forensics.org
