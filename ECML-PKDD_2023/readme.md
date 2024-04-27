@@ -36,6 +36,8 @@ wget https://raw.githubusercontent.com/fat-forensics/resources/master/surrogates
 wget https://raw.githubusercontent.com/fat-forensics/resources/master/surrogates_overview/scripts/image_classifier.py -O scripts/image_classifier.py
 # imagenet_label_map.py
 wget https://raw.githubusercontent.com/fat-forensics/resources/master/surrogates_overview/scripts/imagenet_label_map.py -O scripts/imagenet_label_map.py
+# cifar_label_map.py
+wget https://raw.githubusercontent.com/fat-forensics/resources/master/surrogates_overview/scripts/cifar_label_map.py -O scripts/cifar_label_map.py
 ```
 
 ## Abstract ##

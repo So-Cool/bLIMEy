@@ -583,6 +583,35 @@ def explain_image_exp(
         train_on_random=train_on_random)
 
 
+def explain_cifar_exp(
+        image_path, use_cifar100=False, use_gpu=False,
+        random_seed=42, n_top_classes=3,            # General
+        samples_number=150, batch_size=50,          # Processing
+        segmenter_type='slic',                      # Segmenter Type
+        ratio=0.5, kernel_size=5, max_dist=10,      # QS Segmenter
+        n_segments=13,                              # Slic Segmenter
+        occlusion_colour='black',                   # Occluder
+        generate_complete_sample=True,              # Sampler
+        kernel_width=0.25,                          # Similarity
+        train_on_random=False                       # Training on random occlusion
+        ):
+    if use_cifar100:
+        clf = imgclf.Cifar100Classifier(use_gpu=use_gpu)
+    else:
+        clf = imgclf.Cifar10Classifier(use_gpu=use_gpu)
+    return explain_image(
+        image_path[0], clf,
+        random_seed=random_seed, n_top_classes=n_top_classes,
+        samples_number=samples_number, batch_size=batch_size,
+        segmenter_type=segmenter_type,
+        ratio=ratio, kernel_size=kernel_size, max_dist=max_dist,
+        n_segments=n_segments,
+        occlusion_colour=occlusion_colour,
+        generate_complete_sample=generate_complete_sample,
+        kernel_width=kernel_width,
+        train_on_random=train_on_random)
+
+
 def lime_loss(residuals, weights=None):
     """Individual loss (LIME)."""
     if weights is None:
@@ -931,9 +960,10 @@ def plot_loss_summary(lime_scores_summary, limet_scores_summary, class_id,
     plt.savefig(save_path, dpi=300, bbox_inches='tight', pad_inches=0)
 
 
-def tabulate_loss_summary(lime_scores_summary, limet_scores_summary, class_id,
-                          cutoff, scale_factor=1, latex=True,
-                          use_limet_loss=False, use_weighted=True, use_random=False):
+def tabulate_loss_summary(
+        lime_scores_summary, limet_scores_summary, class_id, cutoff,
+        scale_factor=1, latex=False,
+        use_limet_loss=False, use_weighted=False, use_random=False):
     if use_limet_loss:
         if use_weighted:
             if use_random:
