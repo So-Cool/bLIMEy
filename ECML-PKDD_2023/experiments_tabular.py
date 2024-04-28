@@ -97,11 +97,11 @@ if __name__ == '__main__':
     The second argument specifies one of the following action:,
 
     exp_rand
-        Runs image experiments with a random sample of images.
+        Runs tabular experiments with a random sample of instances.
         Execute with:
         `python experiments.py wine exp_rand
     exp
-        Runs image experiments with all images.
+        Runs tabular experiments with all instances.
         Execute with:
         `python experiments.py wine exp
     models
@@ -200,7 +200,7 @@ if __name__ == '__main__':
         else:
             print('The classifier has NOT been trained '
                   f'(checked under the {clf_name} filename). '
-                  'Please train the classifiers first.')
+                  'Please train the classifier first.')
             assert False
         
         Y_test_predicted = clf.predict(X_test)
@@ -220,7 +220,7 @@ if __name__ == '__main__':
             Y_sample = Y_test[idx]
             assert SAMPLE_SIZE == X_sample.shape[0]
             assert Y_sample.shape[0] == X_sample.shape[0]
-            print(f'Trying {SAMPLE_SIZE} images.')
+            print(f'Trying {SAMPLE_SIZE} instances.')
 
             if PARALLELISE:
                 process_parallel(
@@ -233,7 +233,7 @@ if __name__ == '__main__':
             print('Running full tabular experiments.')
 
             SAMPLE_SIZE = X_test.shape[0]
-            print(f'Trying {SAMPLE_SIZE} images.')
+            print(f'Trying {SAMPLE_SIZE} instances.')
 
             if PARALLELISE:
                 process_parallel(
