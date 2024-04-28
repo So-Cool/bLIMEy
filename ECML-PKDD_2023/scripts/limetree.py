@@ -17,7 +17,9 @@ import sklearn.tree
 import warnings
 
 import fatf.utils.data.augmentation as fatf_augmentation
+import fatf.utils.data.discretisation as fatf_discretisation
 import fatf.utils.data.segmentation as fatf_segmentation
+import fatf.utils.data.transformation as fatf_transformation
 import fatf.utils.data.occlusion as fatf_occlusion
 import fatf.utils.kernels as fatf_kernels
 import fatf.utils.models.processing as fatf_processing
@@ -35,7 +37,7 @@ import scripts.image_classifier as imgclf
 __all__ = ['imshow', 'visualise_img',
            'tree_to_code', 'rules_dict2array', 'rules_dict2list',
            'tree_get_explanation', 'filter_explanations',
-           'explain_image', 'explain_image_exp',
+           'explain_tabular', 'explain_image', 'explain_image_exp',
            'lime_loss', 'limet_loss', 'compute_loss',
            'process_loss', 'summarise_loss_lime', 'summarise_loss_limet',
            'plot_loss_summary']
@@ -84,7 +86,7 @@ def visualise_img(explanation, segmenter, top_features=None):
     _explanation = segmenter.highlight_segments(seg, colour=col)
     _explanation_ = segmenter.mark_boundaries(
         image=_explanation, colour=(255, 255, 0))
-    
+
     return _explanation_
 
 
@@ -133,7 +135,7 @@ def tree_to_code(
             rules[node] = local_collector
 
     recurse(0, 1, {})
-    
+
     return rules
 
 
@@ -145,9 +147,9 @@ def rules_dict2array(rules_dict, features_number):
         for feature_id, feature_value in path.items():
             if feature_id == 'prediction': continue
             point[feature_id] = feature_value
-        
+
         dict_array[node] = point
-        
+
     return dict_array
 
 
@@ -303,6 +305,192 @@ def filter_explanations(instance_spec, on=None, off=None, use_none=False):
     return idxs
 
 
+def explain_tabular(instance, instance_id, classifier,
+                    data, data_labels,
+                    random_seed=42, n_top_classes=3,            # General
+                    samples_number=10000, batch_size=50,        # Processing
+                    kernel_width=0.25                           # Similarity
+                    ):
+    logger.debug(f'Instance: {instance_id}')
+
+    instance_pred = classifier.predict_proba([instance])[0]
+    top_three_classes = np.flip(np.argsort(instance_pred))[:n_top_classes]
+    logger.debug(f'Top n classes: {n_top_classes}')
+
+    # Generate local training data sample
+    fatf.setup_random_seed(random_seed)
+    _sampler = fatf_augmentation.Mixup(data, data_labels)
+    sampled_data = _sampler.sample(instance, samples_number=samples_number)
+    logger.debug(f'Sampled data shape: {sampled_data.shape}')
+
+    # Predict sample
+    iter_ = fatf_processing.batch_data(sampled_data, batch_size=batch_size)
+    sampled_data_probabilities = []
+    for batch in iter_:
+        batch_predictions = classifier.predict_proba(batch)
+        sampled_data_probabilities.append(batch_predictions)
+    sampled_data_probabilities = np.vstack(sampled_data_probabilities)
+
+    _sampled_data_predictions = np.argmax(sampled_data_probabilities, axis=1)
+    _sampled_data_predictions_unique = np.unique(_sampled_data_predictions, return_counts=True)
+    _sampled_data_predictions_unique = dict(zip(
+        _sampled_data_predictions_unique[0], _sampled_data_predictions_unique[1]))
+    logger.debug(f'Sampled data predicted class ratio: {_sampled_data_predictions_unique}')
+
+    # Get distances to the sampled data
+    distances = scipy.spatial.distance.cdist([instance], sampled_data, 'euclidean').flatten()
+    assert not np.isnan(distances).any(), 'Do not expect any nans.'
+
+    # Transform distance into similarity
+    similarities = fatf_kernels.exponential_kernel(
+                distances, width=kernel_width)
+    logger.debug(f'{100 * np.sum(similarities == 0) / similarities.shape[0]:3.2f}% of '
+                  'similarities is 0.')
+
+    # Get interpretable representation
+    # LIME (class-agnostic discretisation)
+    ir_lime = fatf_discretisation.QuartileDiscretiser(sampled_data)
+    # discretise...
+    _sampled_data_ir_lime = ir_lime.discretise(sampled_data)
+    _instance_ir_lime = ir_lime.discretise(instance)
+    # binarise...
+    sampled_data_ir_lime = fatf_transformation.dataset_row_masking(
+        _sampled_data_ir_lime, _instance_ir_lime)
+    # LIMEtree (class-aware discretisation)
+    # TODO
+
+    # LIME -- explain each class with a ridge regression
+    lime_dict = {}
+    for idx in top_three_classes:
+        class_probs = sampled_data_probabilities[:, idx]
+
+        clf_weighted = sklearn.linear_model.Ridge(
+            alpha=1, fit_intercept=True, random_state=random_seed)
+        clf_weighted.fit(
+            sampled_data_ir_lime, class_probs, sample_weight=similarities)
+        preds = clf_weighted.predict(sampled_data_ir_lime)
+        diffs_weighted = class_probs - preds
+
+        clf = sklearn.linear_model.Ridge(
+            alpha=1, fit_intercept=True, random_state=random_seed)
+        clf.fit(sampled_data_ir_lime, class_probs)
+        preds = clf.predict(sampled_data_ir_lime)
+        diffs = class_probs - preds
+
+        lime_dict[idx] = dict(diffs=diffs, diffs_weighted=diffs_weighted)
+
+    # LIMEtree -- explain each class with a multi-output regression tree
+    lime_tree_dict = {}
+    for depth_bound in range(2, sampled_data_ir_lime.shape[1] + 1):
+        lime_tree_dict[depth_bound] = {}
+
+        for classes_no in range(1, int(top_three_classes.shape[0]) + 1):
+            class_ids = top_three_classes[:classes_no]
+            if classes_no == 1:
+                class_probs =  sampled_data_probabilities[:, class_ids[0]]
+            else:
+                class_probs = sampled_data_probabilities[:, class_ids]
+
+            # LIMEtree
+            tree = sklearn.tree.DecisionTreeRegressor(
+                random_state=random_seed, max_depth=depth_bound)
+            tree.fit(sampled_data_ir_lime, class_probs)
+            pred = tree.predict(sampled_data_ir_lime)
+            diffs = class_probs - pred
+
+            tree_weighted = sklearn.tree.DecisionTreeRegressor(
+                random_state=random_seed, max_depth=depth_bound)
+            tree_weighted.fit(
+                sampled_data_ir_lime, class_probs, sample_weight=similarities)
+            pred = tree_weighted.predict(sampled_data_ir_lime)
+            diffs_weighted = class_probs - pred
+
+            # LIMEtree -- overridden
+            t2c = tree_to_code(tree, sampled_data_ir_lime.shape[1],
+                               include_split_nodes=False)
+            t2a = rules_dict2array(t2c, sampled_data_ir_lime.shape[1])
+            # Map each node id to a prediction from the black box
+            node_ids = sorted(t2a.keys())
+            node_imgs = np.asarray([t2a[i] for i in node_ids])
+            iter_ = fatf_processing.batch_data(
+                node_imgs,
+                batch_size=batch_size)
+            node_probs = []
+            for batch in iter_:
+                batch_predictions = classifier.predict_proba(batch)
+                node_probs.append(batch_predictions)
+            node_probs = np.vstack(node_probs)
+            # Construct the tree
+            fixed_tree = {}
+            for i, node_id in enumerate(node_ids):
+                # Assume shortest explanations are best
+                if classes_no == 1:
+                    fixed_tree[node_id] = node_probs[i, class_ids[0]]
+                else:
+                    fixed_tree[node_id] = node_probs[i, class_ids]
+            # Get the overridden predictions
+            pred = np.zeros_like(pred)
+            pred_leaf_id = tree.apply(sampled_data_ir_lime)
+            for i, p in enumerate(pred_leaf_id):
+                pred[i] = fixed_tree[p]
+            # Get the residuals
+            diffs_fixed = class_probs - pred
+
+            t2c = tree_to_code(tree_weighted, sampled_data_ir_lime.shape[1],
+                               include_split_nodes=False)
+            t2a = rules_dict2array(t2c, sampled_data_ir_lime.shape[1])
+            # Map each node id to a prediction from the black box
+            node_ids = sorted(t2a.keys())
+            node_imgs = np.asarray([t2a[i] for i in node_ids])
+            iter_ = fatf_processing.batch_data(
+                node_imgs,
+                batch_size=batch_size)
+            node_probs = []
+            for batch in iter_:
+                batch_predictions = classifier.predict_proba(batch)
+                node_probs.append(batch_predictions)
+            node_probs = np.vstack(node_probs)
+            # Construct the tree
+            fixed_tree = {}
+            for i, node_id in enumerate(node_ids):
+                # Assume shortest explanations are best
+                if classes_no == 1:
+                    fixed_tree[node_id] = node_probs[i, class_ids[0]]
+                else:
+                    fixed_tree[node_id] = node_probs[i, class_ids]
+            # Get the overridden predictions
+            pred = np.zeros_like(pred)
+            pred_leaf_id = tree_weighted.apply(sampled_data_ir_lime)
+            for i, p in enumerate(pred_leaf_id):
+                pred[i] = fixed_tree[p]
+            # Get the residuals
+            diffs_fixed_weighted = class_probs - pred
+
+            lime_tree_dict[depth_bound][classes_no] = dict(
+                cls_id=class_ids,
+                diffs=diffs,
+                diffs_weighted=diffs_weighted,
+                diffs_fixed=diffs_fixed,
+                diffs_fixed_weighted=diffs_fixed_weighted)
+
+    return instance_id, top_three_classes, similarities, lime_dict, lime_tree_dict
+
+
+def explain_tabular_parallel(
+        ixy,
+        classifier=None, data=None, data_labels=None,
+        random_seed=42, n_top_classes=3,            # General
+        samples_number=10000, batch_size=50,        # Processing
+        kernel_width=0.25                           # Similarity
+        ):
+    i, (x, y) = ixy
+    return explain_tabular(
+        x, i, classifier, data, data_labels,
+        random_seed=random_seed, n_top_classes=n_top_classes,
+        samples_number=samples_number, batch_size=batch_size,
+        kernel_width=kernel_width)
+
+
 def explain_image(image_path, classifier,
                   random_seed=42, n_top_classes=3,            # General
                   samples_number=150, batch_size=50,          # Processing
@@ -455,7 +643,7 @@ def explain_image(image_path, classifier,
             else:
                 class_probs = sampled_data_probabilities[:, class_ids]
                 class_probsR = sampled_data_probabilitiesR[:, class_ids]
-           
+
             # LIMEtree
             tree = sklearn.tree.DecisionTreeRegressor(
                 random_state=random_seed, max_depth=depth_bound)
@@ -463,7 +651,7 @@ def explain_image(image_path, classifier,
                 tree.fit(sampled_data, class_probsR)
             else:
                 tree.fit(sampled_data, class_probs)
-            
+
             pred = tree.predict(sampled_data)
             diffs = class_probs - pred
             diffsR = class_probsR - pred
@@ -687,7 +875,7 @@ def compute_loss(pred_idxs, similarities, diff, diff_type):
             lt_wmseR = limet_loss(
                 collect_residuals_lime(diff, pred_idxs[:i+1], 'diffs_weightedR'),
                 weights=similarities)
- 
+
             loss_collector[idx] = dict(
                 mse=mse, mseR=mseR, wmse=wmse, wmseR=wmseR,  # LIME loss
                 lt_mse=lt_mse, lt_mseR=lt_mseR,              # LIMEtree loss
