@@ -173,10 +173,14 @@ if __name__ == '__main__':
             assert False
 
         if sys.argv[1].lower() == 'wine':
-            clf_wine_lr = skl_lm.LogisticRegression(random_state=42, multi_class='multinomial', max_iter=10000)
+            clf_wine_lr = skl_lm.LogisticRegression(
+                random_state=42,
+                solver='lbfgs', multi_class='multinomial', max_iter=10000)
             clf = clf_wine_lr
         elif sys.argv[1].lower() == 'forest':
-            clf_forest_mlp = skl_nn.MLPClassifier(random_state=42, hidden_layer_sizes=(100, 200, 100))
+            clf_forest_mlp = skl_nn.MLPClassifier(
+                random_state=42,
+                hidden_layer_sizes=(100, 200, 100))
             clf = clf_forest_mlp
         else:
             assert False
