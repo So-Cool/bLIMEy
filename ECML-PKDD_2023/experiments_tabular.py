@@ -133,7 +133,7 @@ if __name__ == '__main__':
             data_wine, labels_wine, train_size=0.8, random_state=42, stratify=labels_wine)
         data_wine_train, data_wine_test, labels_wine_train, labels_wine_test = wine_split
 
-        clf_wine_name = 'cls_wine_lr.joblib'
+        clf_wine_name = 'clf_wine_lr.joblib'
 
         X, Y = data_wine, labels_wine
         X_train, Y_train = data_wine_train, labels_wine_train
@@ -151,7 +151,7 @@ if __name__ == '__main__':
             data_forest, labels_forest, train_size=0.8, random_state=42, stratify=labels_forest)
         data_forest_train, data_forest_test, labels_forest_train, labels_forest_test = forest_split
 
-        clf_forest_name = 'cls_forest_mlp.joblib'
+        clf_forest_name = 'clf_forest_mlp.joblib'
 
         X, Y = data_forest, labels_forest
         X_train, Y_train = data_forest_train, labels_forest_train
