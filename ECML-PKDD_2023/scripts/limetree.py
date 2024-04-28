@@ -836,13 +836,19 @@ def limet_loss(residuals, weights=None):
     return mse
 
 
-def compute_loss(pred_idxs, similarities, diff, diff_type):
+def compute_loss(pred_idxs, similarities, diff, diff_type, ignoreR=False):
     assert diff_type in ('lime', 'limet'), 'Only lime and limet are supported.'
-    lime_measurements = {'diffs', 'diffsR', 'diffs_weighted', 'diffs_weightedR'}
+    lime_measurements = {'diffs', 'diffs_weighted'}
+    if not ignoreR:
+        lime_measurements = lime_measurements.union(
+            {'diffsR', 'diffs_weightedR'})
     limet_measurements = lime_measurements.union({
         'cls_id',
-        'diffs_fixed', 'diffs_fixedR',
-        'diffs_fixed_weighted', 'diffs_fixed_weightedR'})
+        'diffs_fixed',
+        'diffs_fixed_weighted'})
+    if not ignoreR:
+        limet_measurements = limet_measurements.union({
+            'diffs_fixedR', 'diffs_fixed_weightedR'})
 
     loss_collector = dict()
 
@@ -858,28 +864,39 @@ def compute_loss(pred_idxs, similarities, diff, diff_type):
 
             # Individual loss
             mse = lime_loss(diff[idx]['diffs'])
-            mseR = lime_loss(diff[idx]['diffsR'])
+            if not ignoreR:
+                mseR = lime_loss(diff[idx]['diffsR'])
 
             wmse = lime_loss(diff[idx]['diffs_weighted'], weights=similarities)
-            wmseR = lime_loss(diff[idx]['diffs_weightedR'], weights=similarities)
+            if not ignoreR:
+                wmseR = lime_loss(diff[idx]['diffs_weightedR'], weights=similarities)
 
             # Cumulative loss
             lt_mse = limet_loss(collect_residuals_lime(
                 diff, pred_idxs[:i+1], 'diffs'))
-            lt_mseR = limet_loss(collect_residuals_lime(
-                diff, pred_idxs[:i+1], 'diffsR'))
+            if not ignoreR:
+                lt_mseR = limet_loss(collect_residuals_lime(
+                    diff, pred_idxs[:i+1], 'diffsR'))
 
             lt_wmse = limet_loss(
                 collect_residuals_lime(diff, pred_idxs[:i+1], 'diffs_weighted'),
                 weights=similarities)
-            lt_wmseR = limet_loss(
-                collect_residuals_lime(diff, pred_idxs[:i+1], 'diffs_weightedR'),
-                weights=similarities)
+            if not ignoreR:
+                lt_wmseR = limet_loss(
+                    collect_residuals_lime(diff, pred_idxs[:i+1], 'diffs_weightedR'),
+                    weights=similarities)
 
             loss_collector[idx] = dict(
-                mse=mse, mseR=mseR, wmse=wmse, wmseR=wmseR,  # LIME loss
-                lt_mse=lt_mse, lt_mseR=lt_mseR,              # LIMEtree loss
-                lt_wmse=lt_wmse, lt_wmseR=lt_wmseR)
+                mse=mse, wmse=wmse,  # LIME loss
+                lt_mse=lt_mse,              # LIMEtree loss
+                lt_wmse=lt_wmse)
+            if not ignoreR:
+                # LIME loss
+                loss_collector[idx]['mseR'] = mseR
+                loss_collector[idx]['wmseR'] = wmseR
+                # LIMEtree loss
+                loss_collector[idx]['lt_mseR'] = lt_mseR
+                loss_collector[idx]['lt_wmseR'] = lt_wmseR
     else:
         for depth, depth_dict in diff.items():
             loss_collector[depth] = dict()
@@ -893,61 +910,80 @@ def compute_loss(pred_idxs, similarities, diff, diff_type):
                 classes_no_ = classes_no + 1
 
                 mse = lime_loss(diff_['diffs'].T[classes_no, :])
-                mseR = lime_loss(diff_['diffsR'].T[classes_no, :])
+                if not ignoreR:
+                    mseR = lime_loss(diff_['diffsR'].T[classes_no, :])
 
                 mseF = lime_loss(diff_['diffs_fixed'].T[classes_no, :])
-                mseFR = lime_loss(diff_['diffs_fixedR'].T[classes_no, :])
+                if not ignoreR:
+                    mseFR = lime_loss(diff_['diffs_fixedR'].T[classes_no, :])
 
                 # similarities_ = np.tile(similarities, classes_no)
                 wmse = lime_loss(
                     diff_['diffs_weighted'].T[classes_no, :],
                     weights=similarities)
-                wmseR = lime_loss(
-                    diff_['diffs_weightedR'].T[classes_no, :],
-                    weights=similarities)
+                if not ignoreR:
+                    wmseR = lime_loss(
+                        diff_['diffs_weightedR'].T[classes_no, :],
+                        weights=similarities)
 
                 wmseF = lime_loss(
                     diff_['diffs_fixed_weighted'].T[classes_no, :],
                     weights=similarities)
-                wmseFR = lime_loss(
-                    diff_['diffs_fixed_weightedR'].T[classes_no, :],
-                    weights=similarities)
+                if not ignoreR:
+                    wmseFR = lime_loss(
+                        diff_['diffs_fixed_weightedR'].T[classes_no, :],
+                        weights=similarities)
 
                 # Cumulative loss
                 lt_mse = limet_loss(diff_['diffs'].T[:classes_no_, :])
-                lt_mseR = limet_loss(diff_['diffsR'].T[:classes_no_, :])
+                if not ignoreR:
+                    lt_mseR = limet_loss(diff_['diffsR'].T[:classes_no_, :])
 
                 lt_mseF = limet_loss(diff_['diffs_fixed'].T[:classes_no_, :])
-                lt_mseFR = limet_loss(diff_['diffs_fixedR'].T[:classes_no_, :])
+                if not ignoreR:
+                    lt_mseFR = limet_loss(diff_['diffs_fixedR'].T[:classes_no_, :])
 
                 lt_wmse = limet_loss(
                     diff_['diffs_weighted'].T[:classes_no_, :],
                     weights=similarities)
-                lt_wmseR = limet_loss(
-                    diff_['diffs_weightedR'].T[:classes_no_, :],
-                    weights=similarities)
+                if not ignoreR:
+                    lt_wmseR = limet_loss(
+                        diff_['diffs_weightedR'].T[:classes_no_, :],
+                        weights=similarities)
 
                 lt_wmseF = limet_loss(
                     diff_['diffs_fixed_weighted'].T[:classes_no_, :],
                     weights=similarities)
-                lt_wmseFR = limet_loss(
-                    diff_['diffs_fixed_weightedR'].T[:classes_no_, :],
-                    weights=similarities)
+                if not ignoreR:
+                    lt_wmseFR = limet_loss(
+                        diff_['diffs_fixed_weightedR'].T[:classes_no_, :],
+                        weights=similarities)
 
                 loss_collector[depth][classes_no_] = dict(
-                    mse=mse, mseR=mseR,                    # LIME loss
-                    mseF=mseF, mseFR=mseFR,
-                    wmse= wmse, wmseR=wmseR,
-                    wmseF=wmseF, wmseFR=wmseFR,
-                    lt_mse=lt_mse, lt_mseR=lt_mseR,        # LIMEtree loss
-                    lt_mseF=lt_mseF, lt_mseFR=lt_mseFR,
-                    lt_wmse= lt_wmse, lt_wmseR=lt_wmseR,
-                    lt_wmseF=lt_wmseF, lt_wmseFR=lt_wmseFR)
+                    mse=mse,              # LIME loss
+                    mseF=mseF,
+                    wmse= wmse,
+                    wmseF=wmseF,
+                    lt_mse=lt_mse,        # LIMEtree loss
+                    lt_mseF=lt_mseF,
+                    lt_wmse= lt_wmse,
+                    lt_wmseF=lt_wmseF)
+                if not ignoreR:
+                    # LIME loss
+                    loss_collector[depth][classes_no_]['mseR'] = mseR
+                    loss_collector[depth][classes_no_]['mseFR'] = mseFR
+                    loss_collector[depth][classes_no_]['wmseR'] = wmseR
+                    loss_collector[depth][classes_no_]['wmseFR'] = wmseFR
+                    # LIMEtree loss
+                    loss_collector[depth][classes_no_]['lt_mseR'] = lt_mseR
+                    loss_collector[depth][classes_no_]['lt_mseFR'] = lt_mseFR
+                    loss_collector[depth][classes_no_]['lt_wmseR'] = lt_wmseR
+                    loss_collector[depth][classes_no_]['lt_wmseFR'] = lt_wmseFR
 
     return loss_collector
 
 
-def process_loss(loss_collector):
+def process_loss(loss_collector, ignoreR=False):
     lime_scores, limet_scores, top_classes = [], [], []
     imgs_sorted = sorted(loss_collector.keys())
 
@@ -959,9 +995,9 @@ def process_loss(loss_collector):
             continue
 
         top_classes.append(top_pred)
-        loss = compute_loss(top_pred, similarities, lime, 'lime')
+        loss = compute_loss(top_pred, similarities, lime, 'lime', ignoreR=ignoreR)
         lime_scores.append(loss)
-        loss = compute_loss(top_pred, similarities, limet, 'limet')
+        loss = compute_loss(top_pred, similarities, limet, 'limet', ignoreR=ignoreR)
         limet_scores.append(loss)
 
     assert len(lime_scores) == len(limet_scores)
@@ -969,9 +1005,13 @@ def process_loss(loss_collector):
     return top_classes, lime_scores, limet_scores
 
 
-def summarise_loss_lime(lime_loss, top_classes):
-    score_types = ['mse', 'mseR', 'wmse', 'wmseR',
-                   'lt_mse', 'lt_mseR', 'lt_wmse', 'lt_wmseR']
+def summarise_loss_lime(lime_loss, top_classes, ignoreR=False):
+    score_types = ['mse', 'wmse',
+                   'lt_mse', 'lt_wmse']
+    if not ignoreR:
+        score_types += [
+            'mseR', 'wmseR',
+            'lt_mseR', 'lt_wmseR']
 
     lime_loss_summary = {}
     for score_type in score_types:
@@ -995,11 +1035,17 @@ def summarise_loss_lime(lime_loss, top_classes):
     return lime_loss_summary_
 
 
-def summarise_loss_limet(limet_loss, top_classes, rounding=2):
-    score_types = ['mse', 'mseR', 'wmse', 'wmseR',
-                   'lt_mse', 'lt_mseR', 'lt_wmse', 'lt_wmseR',
-                   'mseF', 'mseFR', 'wmseF', 'wmseFR',
-                   'lt_mseF', 'lt_mseFR', 'lt_wmseF', 'lt_wmseFR']
+def summarise_loss_limet(limet_loss, top_classes, rounding=2, ignoreR=False):
+    score_types = ['mse', 'wmse',
+                   'lt_mse', 'lt_wmse',
+                   'mseF', 'wmseF',
+                   'lt_mseF', 'lt_wmseF']
+    if not ignoreR:
+        score_types += [
+            'mseR', 'wmseR',
+            'lt_mseR', 'lt_wmseR',
+            'mseFR', 'wmseFR',
+            'lt_mseFR', 'lt_wmseFR']
 
     assert top_classes, 'Must not be empty.'
     classes_n = top_classes[0].shape[0]
@@ -1040,7 +1086,9 @@ def summarise_loss_limet(limet_loss, top_classes, rounding=2):
 
 def plot_loss_summary(lime_scores_summary, limet_scores_summary, class_id,
                       use_limet_loss=False, use_weighted=True, use_random=False,
-                      err_style_band=True, fontsize=16):
+                      err_style_band=True, fontsize=16, ignoreR=False):
+    if ignoreR and use_random:
+        raise RuntimeError('Cannot use `use_random` when `ignoreR` is set to `True`.')
     if use_limet_loss:
         if use_weighted:
             if use_random:
@@ -1151,7 +1199,10 @@ def plot_loss_summary(lime_scores_summary, limet_scores_summary, class_id,
 def tabulate_loss_summary(
         lime_scores_summary, limet_scores_summary, class_id, cutoff,
         scale_factor=1, latex=False,
-        use_limet_loss=False, use_weighted=False, use_random=False):
+        use_limet_loss=False, use_weighted=False, use_random=False,
+        ignoreR=False):
+    if ignoreR and use_random:
+        raise RuntimeError('Cannot use `use_random` when `ignoreR` is set to `True`.')
     if use_limet_loss:
         if use_weighted:
             if use_random:
