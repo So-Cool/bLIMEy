@@ -1001,7 +1001,7 @@ def process_loss(loss_collector, ignoreR=False):
         limet_scores.append(loss)
 
     assert len(lime_scores) == len(limet_scores)
-    logger.debug(f'Number of processed images: {len(limet_scores)}')
+    logger.debug(f'Number of processed data points: {len(limet_scores)}')
     return top_classes, lime_scores, limet_scores
 
 
