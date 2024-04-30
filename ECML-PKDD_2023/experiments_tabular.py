@@ -30,6 +30,7 @@ from multiprocessing import Pool
 PARALLELISE = False
 ENABLE_LOGGING = False
 SAMPLE_SIZE = 150
+SAMPLE_STRATIFIED = True
 BATCH_SIZE = 250
 PICKLE_FILE = 'limetree_tabular_{:d}.pickle'
 PICKLE_FILE_TEMP = 'limetree_tabular_temp_{:d}.pickle'
@@ -179,7 +180,7 @@ if __name__ == '__main__':
             clf = clf_wine_lr
         elif sys.argv[1].lower() == 'forest':
             clf_forest_mlp = skl_nn.MLPClassifier(
-                random_state=42,
+                random_state=42, verbose=True,
                 hidden_layer_sizes=(100, 200, 100))
             clf = clf_forest_mlp
         else:
@@ -214,12 +215,20 @@ if __name__ == '__main__':
                 print(f'The data set has only {X_test.shape[0]} instances; '
                       f'the sample size ({SAMPLE_SIZE}) cannot be larger.')
                 assert False
-            random.seed(a=42)
-            idx = sorted(random.sample(range(X_test.shape[0]), SAMPLE_SIZE))
-            X_sample = X_test[idx, :]
-            Y_sample = Y_test[idx]
-            assert SAMPLE_SIZE == X_sample.shape[0]
-            assert Y_sample.shape[0] == X_sample.shape[0]
+
+            if SAMPLE_STRATIFIED:
+                limetree.logger.info('Using a stratified sample.')
+                XY_sample = skl_tts.train_test_split(
+                    X_test, Y_test, train_size=SAMPLE_SIZE, random_state=42, stratify=Y_test)
+                X_sample, _, Y_sample, _ = XY_sample
+            else:
+                limetree.logger.info('Using a NON-stratified sample.')
+                random.seed(a=42)
+                idx = sorted(random.sample(range(X_test.shape[0]), SAMPLE_SIZE))
+                X_sample = X_test[idx, :]
+                Y_sample = Y_test[idx]
+            assert SAMPLE_SIZE == X_sample.shape[0], f'{SAMPLE_SIZE} != {X_sample.shape[0]}'
+            assert Y_sample.shape[0] == X_sample.shape[0], f'{Y_sample.shape[0]} != {X_sample.shape[0]}'
             print(f'Trying {SAMPLE_SIZE} instances.')
 
             if PARALLELISE:
