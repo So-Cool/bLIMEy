@@ -89,6 +89,28 @@ def process_sequential(X, Y, X_test, Y_test, clf, kernel_width=0.25):
         pickle.dump(collector, f, protocol=pickle.HIGHEST_PROTOCOL)
 
 
+def process_data(pickle_file):
+    """Processes the data pickle file."""
+    with open(pickle_file, 'rb') as f:
+        collector = pickle.load(f)
+
+    if isinstance(collector, list):
+        collector = {i:j for i, j in enumerate(collector)}
+
+    print(f'Number of processed instances: {len(collector.keys())}')
+    top_classes, lime_scores, limet_scores = limetree.process_loss(collector, ignoreR=True)
+    lime_scores_summary = limetree.summarise_loss_lime(lime_scores, top_classes, ignoreR=True)
+    limet_scores_summary = limetree.summarise_loss_limet(limet_scores, top_classes, ignoreR=True)
+
+    pickle_file_dir = os.path.dirname(pickle_file)
+    pickle_file_base = f'processed_{os.path.basename(pickle_file)}'
+    pickle_file_ = os.path.join(pickle_file_dir, pickle_file_base)
+
+    with open(pickle_file_, 'wb') as f:
+        pickle.dump((lime_scores_summary, limet_scores_summary),
+                    f, protocol=pickle.HIGHEST_PROTOCOL)
+
+
 if __name__ == '__main__':
     """
     Runs various scripts.
@@ -100,28 +122,32 @@ if __name__ == '__main__':
     exp_rand
         Runs tabular experiments with a random sample of instances.
         Execute with:
-        `python experiments.py wine exp_rand
+        `python experiments_tabular.py wine exp_rand
     exp
         Runs tabular experiments with all instances.
         Execute with:
-        `python experiments.py wine exp
+        `python experiments_tabular.py wine exp
     models
         Train models.
         Execute with:
-        `python experiments.py wine models`
+        `python experiments_tabular.py wine models`
+    proc
+        Processes the data for plotting.
+        Execute with:
+        `python experiments_tabular.py /path/to/a/pickle/file.pickle proc`
     """
     if len(sys.argv) != 3:
         print('The script requires 2 arguments:')
-        print('  1: Data set (wine or forest).')
-        print('  2: Function (exp_rand, exp or models).')
+        print('  1: Data set (wine or forest); for `proc` this should be pickle file path.')
+        print('  2: Function (exp_rand, exp, models or proc).')
         assert False
-    if sys.argv[1].lower() not in ('wine', 'forest'):
+    if sys.argv[1].lower() not in ('wine', 'forest') or not sys.argv[1].lower().endswith('.pickle'):
         print('The first argument must specify one of the following data sets: '
-              'wine or forest.')
+              'wine or forest, or a pickle file path.')
         assert False
-    if sys.argv[2].lower() not in ('exp_rand', 'exp', 'models'):
+    if sys.argv[2].lower() not in ('exp_rand', 'exp', 'models', 'proc'):
         print('The second argument must specify one of the following functions: '
-              'exp_rand, exp or models.')
+              'exp_rand, exp, models or proc.')
         assert False
 
     # data
@@ -162,7 +188,7 @@ if __name__ == '__main__':
 
         kernel_width = 125
     else:
-        assert False
+        assert os.path.isfile(sys.argv[1]), f'{sys.argv[1]} file does not exist.'
 
     if sys.argv[2] == 'models':
         print('Train a model.')
@@ -195,6 +221,9 @@ if __name__ == '__main__':
         joblib.dump(clf, clf_name)
 
         print(f'Model saved to: {clf_name}')
+    elif sys.argv[2] == 'proc':
+        print('Processing experiment data for plotting.')
+        process_data(sys.argv[1])
     else:
         if os.path.exists(clf_name):
             clf = joblib.load(clf_name)
