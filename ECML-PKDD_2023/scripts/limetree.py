@@ -1030,7 +1030,7 @@ def summarise_loss_lime(lime_loss, top_classes, ignoreR=False):
         lime_loss_summary_[score_type] = {}
         for cls_, scores in lime_loss_summary[score_type].items():
             lime_loss_summary_[score_type][cls_] = (
-                np.mean(scores), np.var(scores))
+                np.mean(scores), np.std(scores))
 
     return lime_loss_summary_
 
@@ -1079,7 +1079,7 @@ def summarise_loss_limet(limet_loss, top_classes, rounding=2, ignoreR=False):
             limet_loss_summary_[score_type][classes_no] = {}
             for depth_ratio, scores in limet_loss_summary[score_type][classes_no].items():
                 limet_loss_summary_[score_type][classes_no][depth_ratio] = (
-                    np.mean(scores), np.var(scores))
+                    np.mean(scores), np.std(scores))
 
     return limet_loss_summary_
 
