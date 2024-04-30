@@ -141,7 +141,7 @@ if __name__ == '__main__':
         print('  1: Data set (wine or forest); for `proc` this should be pickle file path.')
         print('  2: Function (exp_rand, exp, models or proc).')
         assert False
-    if sys.argv[1].lower() not in ('wine', 'forest') or not sys.argv[1].lower().endswith('.pickle'):
+    if sys.argv[1].lower() not in ('wine', 'forest') and not sys.argv[1].lower().endswith('.pickle'):
         print('The first argument must specify one of the following data sets: '
               'wine or forest, or a pickle file path.')
         assert False
@@ -197,30 +197,30 @@ if __name__ == '__main__':
             print('The classifier has already been trained and is stored '
                   f'under the {clf_name} filename. '
                   'Please remove the file to train.')
-            assert False
-
-        if sys.argv[1].lower() == 'wine':
-            clf_wine_lr = skl_lm.LogisticRegression(
-                random_state=42,
-                solver='lbfgs', multi_class='multinomial', max_iter=10000)
-            clf = clf_wine_lr
-        elif sys.argv[1].lower() == 'forest':
-            clf_forest_mlp = skl_nn.MLPClassifier(
-                random_state=42, verbose=True,
-                hidden_layer_sizes=(100, 200, 100))
-            clf = clf_forest_mlp
+            clf = joblib.load(clf_name)
         else:
-            assert False
+            if sys.argv[1].lower() == 'wine':
+                clf_wine_lr = skl_lm.LogisticRegression(
+                    random_state=42,
+                    solver='lbfgs', multi_class='multinomial', max_iter=10000)
+                clf = clf_wine_lr
+            elif sys.argv[1].lower() == 'forest':
+                clf_forest_mlp = skl_nn.MLPClassifier(
+                    random_state=42, verbose=True,
+                    hidden_layer_sizes=(100, 200, 100))
+                clf = clf_forest_mlp
+            else:
+                assert False
 
-        clf.fit(X_train, Y_train)
+            clf.fit(X_train, Y_train)
+
+            joblib.dump(clf, clf_name)
+
+            print(f'Model saved to: {clf_name}')
 
         Y_test_predicted = clf.predict(X_test)
         _bacc = skl_metrics.balanced_accuracy_score(Y_test, Y_test_predicted)
         print(f"Model's performance (balanced accuracy): {_bacc:0.3f}")
-
-        joblib.dump(clf, clf_name)
-
-        print(f'Model saved to: {clf_name}')
     elif sys.argv[2] == 'proc':
         print('Processing experiment data for plotting.')
         process_data(sys.argv[1])
