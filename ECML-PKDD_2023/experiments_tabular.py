@@ -28,6 +28,7 @@ import multiprocessing as mp
 from multiprocessing import Pool
 
 PARALLELISE = False
+MEASURE_TIME = False
 ENABLE_LOGGING = False
 SAMPLE_SIZE = 150
 SAMPLE_STRATIFIED = True
@@ -53,10 +54,15 @@ def process_parallel(X, Y, X_test, Y_test, clf, kernel_width=0.25):
             data=X,
             data_labels=Y,
             batch_size=BATCH_SIZE,
-            kernel_width=kernel_width)
+            kernel_width=kernel_width,
+            measure_time=MEASURE_TIME)
         for imp in pool.imap_unordered(_explain_tabular, enumerate(zip(X_test, Y_test))):
-            instance_id, top_pred, similarities, lime, limet = imp
-            collector[instance_id] = (top_pred, similarities, lime, limet)
+            if MEASURE_TIME:
+                instance_id, top_pred, similarities, lime, limet, lime_time, limet_time = imp
+                collector[instance_id] = (top_pred, similarities, lime, limet, lime_time, limet_time)
+            else:
+                instance_id, top_pred, similarities, lime, limet = imp
+                collector[instance_id] = (top_pred, similarities, lime, limet)
             i = len(collector.keys())
             limetree.logger.debug(f'Progress: {100*(i)/i_len:3.0f}% [{i} / {i_len}]')
 
@@ -70,13 +76,19 @@ def process_sequential(X, Y, X_test, Y_test, clf, kernel_width=0.25):
     i_len = X_test.shape[0]
 
     for i, (x, y) in enumerate(zip(X_test, Y_test)):
-        instance_id, top_pred, similarities, lime, limet = limetree.explain_tabular(
+        imp = limetree.explain_tabular(
                 x, i, clf, X, Y,
                 random_seed=42, n_top_classes=3,
                 samples_number=10000, batch_size=BATCH_SIZE,  # Processing
-                kernel_width=kernel_width)                    # Similarity
+                kernel_width=kernel_width,                    # Similarity
+                measure_time=MEASURE_TIME)
+        if MEASURE_TIME:
+            instance_id, top_pred, similarities, lime, limet, lime_time, limet_time = imp
+            collector[instance_id] = (top_pred, similarities, lime, limet, lime_time, limet_time)
+        else:
+            instance_id, top_pred, similarities, lime, limet = imp
+            collector[instance_id] = (top_pred, similarities, lime, limet)
         assert instance_id == i
-        collector[instance_id] = (top_pred, similarities, lime, limet)
         limetree.logger.debug(f'Progress: {100*(i+1)/i_len:3.0f}% [{i+1} / {i_len}]')
 
         if not i%50:
@@ -98,17 +110,28 @@ def process_data(pickle_file):
         collector = {i:j for i, j in enumerate(collector)}
 
     print(f'Number of processed instances: {len(collector.keys())}')
-    top_classes, lime_scores, limet_scores = limetree.process_loss(collector, ignoreR=True)
-    lime_scores_summary = limetree.summarise_loss_lime(lime_scores, top_classes, ignoreR=True)
-    limet_scores_summary = limetree.summarise_loss_limet(limet_scores, top_classes, ignoreR=True)
+    top_classes, lime_scores, limet_scores = limetree.process_loss(
+        collector, ignoreR=True, measure_time=MEASURE_TIME)
+    lime_scores_summary = limetree.summarise_loss_lime(
+        lime_scores, top_classes, ignoreR=True)
+    limet_scores_summary = limetree.summarise_loss_limet(
+        limet_scores, top_classes, ignoreR=True)
+
+    # process execution time
+    if MEASURE_TIME:
+        times = limetree.compare_execution_time(
+            collector, factor=1000)  # return milliseconds
 
     pickle_file_dir = os.path.dirname(pickle_file)
     pickle_file_base = f'processed_{os.path.basename(pickle_file)}'
     pickle_file_ = os.path.join(pickle_file_dir, pickle_file_base)
 
     with open(pickle_file_, 'wb') as f:
-        pickle.dump((lime_scores_summary, limet_scores_summary),
-                    f, protocol=pickle.HIGHEST_PROTOCOL)
+        if MEASURE_TIME:
+            save = (lime_scores_summary, limet_scores_summary, times)
+        else:
+            save = (lime_scores_summary, limet_scores_summary)
+        pickle.dump(save, f, protocol=pickle.HIGHEST_PROTOCOL)
 
 
 if __name__ == '__main__':

@@ -14,6 +14,7 @@ import matplotlib
 import scipy
 import sklearn.linear_model
 import sklearn.tree
+import time
 import warnings
 
 import fatf.utils.data.augmentation as fatf_augmentation
@@ -309,8 +310,13 @@ def explain_tabular(instance, instance_id, classifier,
                     data, data_labels,
                     random_seed=42, n_top_classes=3,            # General
                     samples_number=10000, batch_size=50,        # Processing
-                    kernel_width=0.25                           # Similarity
+                    kernel_width=0.25,                          # Similarity
+                    measure_time=False
                     ):
+    if measure_time:
+        lime_time = []
+        limet_time = {}
+
     logger.debug(f'Instance: {instance_id}')
 
     instance_pred = classifier.predict_proba([instance])[0]
@@ -366,8 +372,12 @@ def explain_tabular(instance, instance_id, classifier,
 
         clf_weighted = sklearn.linear_model.Ridge(
             alpha=1, fit_intercept=True, random_state=random_seed)
+        if measure_time:
+            _t = time.process_time()
         clf_weighted.fit(
             sampled_data_ir_lime, class_probs, sample_weight=similarities)
+        if measure_time:
+            lime_time.append(time.process_time() - _t)
         preds = clf_weighted.predict(sampled_data_ir_lime)
         diffs_weighted = class_probs - preds
 
@@ -378,6 +388,8 @@ def explain_tabular(instance, instance_id, classifier,
         diffs = class_probs - preds
 
         lime_dict[idx] = dict(diffs=diffs, diffs_weighted=diffs_weighted)
+    if measure_time:
+        lime_time = sum(lime_time)
 
     # LIMEtree -- explain each class with a multi-output regression tree
     lime_tree_dict = {}
@@ -400,8 +412,13 @@ def explain_tabular(instance, instance_id, classifier,
 
             tree_weighted = sklearn.tree.DecisionTreeRegressor(
                 random_state=random_seed, max_depth=depth_bound)
+            if classes_no == int(top_three_classes.shape[0]) and measure_time:
+                _t = time.process_time()
             tree_weighted.fit(
                 sampled_data_ir_lime, class_probs, sample_weight=similarities)
+            if classes_no == int(top_three_classes.shape[0]) and measure_time:
+                # TODO: assert tree_weighted.get_depth() == depth_bound
+                limet_time[tree_weighted.get_depth()] = time.process_time() - _t
             pred = tree_weighted.predict(sampled_data_ir_lime)
             diffs_weighted = class_probs - pred
 
@@ -473,7 +490,16 @@ def explain_tabular(instance, instance_id, classifier,
                 diffs_fixed=diffs_fixed,
                 diffs_fixed_weighted=diffs_fixed_weighted)
 
-    return instance_id, top_three_classes, similarities, lime_dict, lime_tree_dict
+    if measure_time:
+        r = (instance_id, top_three_classes,
+             similarities,
+             lime_dict, lime_tree_dict,
+             lime_time, limet_time)
+    else:
+        r = (instance_id, top_three_classes,
+             similarities,
+             lime_dict, lime_tree_dict)
+    return r
 
 
 def explain_tabular_parallel(
@@ -983,12 +1009,15 @@ def compute_loss(pred_idxs, similarities, diff, diff_type, ignoreR=False):
     return loss_collector
 
 
-def process_loss(loss_collector, ignoreR=False):
+def process_loss(loss_collector, ignoreR=False, measure_time=False):
     lime_scores, limet_scores, top_classes = [], [], []
     imgs_sorted = sorted(loss_collector.keys())
 
     for img in imgs_sorted:
-        top_pred, similarities, lime, limet = loss_collector[img]
+        if measure_time:
+            top_pred, similarities, lime, limet, _, _ = loss_collector[img]
+        else:
+            top_pred, similarities, lime, limet = loss_collector[img]
 
         if similarities is None:
             logger.debug(f'Image not processed: {img}')
@@ -1265,3 +1294,18 @@ def tabulate_loss_summary(
               f'{scale_factor*results["limetf"][1]:2.2f}\\)')
 
     return results
+
+
+def compare_execution_time(collector, factor=1):
+    """Computes how many more seconds LIMEtree takes over LIME on average."""
+    times = {}
+    for _, (_, _, _, _, lime_time, limet_time) in collector.items():
+        for depth, time in limet_time.items():
+            t = time - lime_time
+            if depth in times:
+                times[depth].append(factor * t)
+            else:
+                times[depth] = [factor * t]
+    for key in times.keys():
+        times[key] = (np.mean(times[key]), np.std(times[key]))
+    return times
