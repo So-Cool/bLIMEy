@@ -132,9 +132,22 @@ def select_images(img_dir, sample_size=150, random_seed=42):
     if sample_size is not None:
         if random_seed is not None:
             random.seed(a=random_seed)
-        img_paths = random.sample(img_paths, sample_size)
+        img_paths = sorted(random.sample(img_paths, sample_size))
 
     return img_paths
+
+
+def select_cifar(data, sample_size=150, random_seed=42):
+    """Selects a random sample of CIFAR images."""
+    if sample_size is not None:
+        if random_seed is not None:
+            random.seed(a=random_seed)
+        idx = sorted(random.sample(range(len(data)), sample_size))
+        sample = [data[i] for i in idx]
+    else:
+        sample = data
+
+    return sample
 
 
 def random_occlusion_matrix(instances, segments, occlusion_size):

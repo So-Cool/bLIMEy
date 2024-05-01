@@ -14,10 +14,13 @@ import matplotlib
 import scipy
 import sklearn.linear_model
 import sklearn.tree
+import time
 import warnings
 
 import fatf.utils.data.augmentation as fatf_augmentation
+import fatf.utils.data.discretisation as fatf_discretisation
 import fatf.utils.data.segmentation as fatf_segmentation
+import fatf.utils.data.transformation as fatf_transformation
 import fatf.utils.data.occlusion as fatf_occlusion
 import fatf.utils.kernels as fatf_kernels
 import fatf.utils.models.processing as fatf_processing
@@ -35,7 +38,7 @@ import scripts.image_classifier as imgclf
 __all__ = ['imshow', 'visualise_img',
            'tree_to_code', 'rules_dict2array', 'rules_dict2list',
            'tree_get_explanation', 'filter_explanations',
-           'explain_image', 'explain_image_exp',
+           'explain_tabular', 'explain_image', 'explain_image_exp',
            'lime_loss', 'limet_loss', 'compute_loss',
            'process_loss', 'summarise_loss_lime', 'summarise_loss_limet',
            'plot_loss_summary']
@@ -84,7 +87,7 @@ def visualise_img(explanation, segmenter, top_features=None):
     _explanation = segmenter.highlight_segments(seg, colour=col)
     _explanation_ = segmenter.mark_boundaries(
         image=_explanation, colour=(255, 255, 0))
-    
+
     return _explanation_
 
 
@@ -133,7 +136,7 @@ def tree_to_code(
             rules[node] = local_collector
 
     recurse(0, 1, {})
-    
+
     return rules
 
 
@@ -145,9 +148,9 @@ def rules_dict2array(rules_dict, features_number):
         for feature_id, feature_value in path.items():
             if feature_id == 'prediction': continue
             point[feature_id] = feature_value
-        
+
         dict_array[node] = point
-        
+
     return dict_array
 
 
@@ -303,6 +306,217 @@ def filter_explanations(instance_spec, on=None, off=None, use_none=False):
     return idxs
 
 
+def explain_tabular(instance, instance_id, classifier,
+                    data, data_labels,
+                    random_seed=42, n_top_classes=3,            # General
+                    samples_number=10000, batch_size=50,        # Processing
+                    kernel_width=0.25,                          # Similarity
+                    measure_time=False
+                    ):
+    if measure_time:
+        lime_time = []
+        limet_time = {}
+
+    logger.debug(f'Instance: {instance_id}')
+
+    instance_pred = classifier.predict_proba([instance])[0]
+    top_three_classes = np.flip(np.argsort(instance_pred))[:n_top_classes]
+    logger.debug(f'Top n classes: {n_top_classes}')
+
+    # Generate local training data sample
+    fatf.setup_random_seed(random_seed)
+    _sampler = fatf_augmentation.Mixup(data, data_labels)
+    sampled_data = _sampler.sample(instance, samples_number=samples_number)
+    logger.debug(f'Sampled data shape: {sampled_data.shape}')
+
+    # Predict sample
+    iter_ = fatf_processing.batch_data(sampled_data, batch_size=batch_size)
+    sampled_data_probabilities = []
+    for batch in iter_:
+        batch_predictions = classifier.predict_proba(batch)
+        sampled_data_probabilities.append(batch_predictions)
+    sampled_data_probabilities = np.vstack(sampled_data_probabilities)
+
+    _sampled_data_predictions = np.argmax(sampled_data_probabilities, axis=1)
+    _sampled_data_predictions_unique = np.unique(_sampled_data_predictions, return_counts=True)
+    _sampled_data_predictions_unique = dict(zip(
+        _sampled_data_predictions_unique[0], _sampled_data_predictions_unique[1]))
+    logger.debug(f'Sampled data predicted class ratio: {_sampled_data_predictions_unique}')
+
+    # Get distances to the sampled data
+    distances = scipy.spatial.distance.cdist([instance], sampled_data, 'euclidean').flatten()
+    assert not np.isnan(distances).any(), 'Do not expect any nans.'
+
+    # Transform distance into similarity
+    similarities = fatf_kernels.exponential_kernel(
+                distances, width=kernel_width)
+    logger.debug(f'{100 * np.sum(similarities == 0) / similarities.shape[0]:3.2f}% of '
+                  'similarities is 0.')
+
+    # Get interpretable representation
+    # LIME (class-agnostic discretisation)
+    ir_lime = fatf_discretisation.QuartileDiscretiser(sampled_data)
+    # discretise...
+    _sampled_data_ir_lime = ir_lime.discretise(sampled_data)
+    _instance_ir_lime = ir_lime.discretise(instance)
+    # binarise...
+    sampled_data_ir_lime = fatf_transformation.dataset_row_masking(
+        _sampled_data_ir_lime, _instance_ir_lime)
+    # LIMEtree (class-aware discretisation)
+    # TODO
+
+    # LIME -- explain each class with a ridge regression
+    lime_dict = {}
+    for idx in top_three_classes:
+        class_probs = sampled_data_probabilities[:, idx]
+
+        clf_weighted = sklearn.linear_model.Ridge(
+            alpha=1, fit_intercept=True, random_state=random_seed)
+        if measure_time:
+            _t = time.process_time()
+        clf_weighted.fit(
+            sampled_data_ir_lime, class_probs, sample_weight=similarities)
+        if measure_time:
+            lime_time.append(time.process_time() - _t)
+        preds = clf_weighted.predict(sampled_data_ir_lime)
+        diffs_weighted = class_probs - preds
+
+        clf = sklearn.linear_model.Ridge(
+            alpha=1, fit_intercept=True, random_state=random_seed)
+        clf.fit(sampled_data_ir_lime, class_probs)
+        preds = clf.predict(sampled_data_ir_lime)
+        diffs = class_probs - preds
+
+        lime_dict[idx] = dict(diffs=diffs, diffs_weighted=diffs_weighted)
+    if measure_time:
+        lime_time = sum(lime_time)
+
+    # LIMEtree -- explain each class with a multi-output regression tree
+    lime_tree_dict = {}
+    for depth_bound in range(2, sampled_data_ir_lime.shape[1] + 1):
+        lime_tree_dict[depth_bound] = {}
+
+        for classes_no in range(1, int(top_three_classes.shape[0]) + 1):
+            class_ids = top_three_classes[:classes_no]
+            if classes_no == 1:
+                class_probs =  sampled_data_probabilities[:, class_ids[0]]
+            else:
+                class_probs = sampled_data_probabilities[:, class_ids]
+
+            # LIMEtree
+            tree = sklearn.tree.DecisionTreeRegressor(
+                random_state=random_seed, max_depth=depth_bound)
+            tree.fit(sampled_data_ir_lime, class_probs)
+            pred = tree.predict(sampled_data_ir_lime)
+            diffs = class_probs - pred
+
+            tree_weighted = sklearn.tree.DecisionTreeRegressor(
+                random_state=random_seed, max_depth=depth_bound)
+            if classes_no == int(top_three_classes.shape[0]) and measure_time:
+                _t = time.process_time()
+            tree_weighted.fit(
+                sampled_data_ir_lime, class_probs, sample_weight=similarities)
+            if classes_no == int(top_three_classes.shape[0]) and measure_time:
+                # TODO: assert tree_weighted.get_depth() == depth_bound
+                limet_time[tree_weighted.get_depth()] = time.process_time() - _t
+            pred = tree_weighted.predict(sampled_data_ir_lime)
+            diffs_weighted = class_probs - pred
+
+            # LIMEtree -- overridden
+            t2c = tree_to_code(tree, sampled_data_ir_lime.shape[1],
+                               include_split_nodes=False)
+            t2a = rules_dict2array(t2c, sampled_data_ir_lime.shape[1])
+            # Map each node id to a prediction from the black box
+            node_ids = sorted(t2a.keys())
+            node_imgs = np.asarray([t2a[i] for i in node_ids])
+            iter_ = fatf_processing.batch_data(
+                node_imgs,
+                batch_size=batch_size)
+            node_probs = []
+            for batch in iter_:
+                batch_predictions = classifier.predict_proba(batch)
+                node_probs.append(batch_predictions)
+            node_probs = np.vstack(node_probs)
+            # Construct the tree
+            fixed_tree = {}
+            for i, node_id in enumerate(node_ids):
+                # Assume shortest explanations are best
+                if classes_no == 1:
+                    fixed_tree[node_id] = node_probs[i, class_ids[0]]
+                else:
+                    fixed_tree[node_id] = node_probs[i, class_ids]
+            # Get the overridden predictions
+            pred = np.zeros_like(pred)
+            pred_leaf_id = tree.apply(sampled_data_ir_lime)
+            for i, p in enumerate(pred_leaf_id):
+                pred[i] = fixed_tree[p]
+            # Get the residuals
+            diffs_fixed = class_probs - pred
+
+            t2c = tree_to_code(tree_weighted, sampled_data_ir_lime.shape[1],
+                               include_split_nodes=False)
+            t2a = rules_dict2array(t2c, sampled_data_ir_lime.shape[1])
+            # Map each node id to a prediction from the black box
+            node_ids = sorted(t2a.keys())
+            node_imgs = np.asarray([t2a[i] for i in node_ids])
+            iter_ = fatf_processing.batch_data(
+                node_imgs,
+                batch_size=batch_size)
+            node_probs = []
+            for batch in iter_:
+                batch_predictions = classifier.predict_proba(batch)
+                node_probs.append(batch_predictions)
+            node_probs = np.vstack(node_probs)
+            # Construct the tree
+            fixed_tree = {}
+            for i, node_id in enumerate(node_ids):
+                # Assume shortest explanations are best
+                if classes_no == 1:
+                    fixed_tree[node_id] = node_probs[i, class_ids[0]]
+                else:
+                    fixed_tree[node_id] = node_probs[i, class_ids]
+            # Get the overridden predictions
+            pred = np.zeros_like(pred)
+            pred_leaf_id = tree_weighted.apply(sampled_data_ir_lime)
+            for i, p in enumerate(pred_leaf_id):
+                pred[i] = fixed_tree[p]
+            # Get the residuals
+            diffs_fixed_weighted = class_probs - pred
+
+            lime_tree_dict[depth_bound][classes_no] = dict(
+                cls_id=class_ids,
+                diffs=diffs,
+                diffs_weighted=diffs_weighted,
+                diffs_fixed=diffs_fixed,
+                diffs_fixed_weighted=diffs_fixed_weighted)
+
+    if measure_time:
+        r = (instance_id, top_three_classes,
+             similarities,
+             lime_dict, lime_tree_dict,
+             lime_time, limet_time)
+    else:
+        r = (instance_id, top_three_classes,
+             similarities,
+             lime_dict, lime_tree_dict)
+    return r
+
+
+def explain_tabular_parallel(
+        ixy,
+        classifier=None, data=None, data_labels=None,
+        random_seed=42, n_top_classes=3,            # General
+        samples_number=10000, batch_size=50,        # Processing
+        kernel_width=0.25                           # Similarity
+        ):
+    i, (x, y) = ixy
+    return explain_tabular(
+        x, i, classifier, data, data_labels,
+        random_seed=random_seed, n_top_classes=n_top_classes,
+        samples_number=samples_number, batch_size=batch_size,
+        kernel_width=kernel_width)
+
+
 def explain_image(image_path, classifier,
                   random_seed=42, n_top_classes=3,            # General
                   samples_number=150, batch_size=50,          # Processing
@@ -316,7 +530,12 @@ def explain_image(image_path, classifier,
                   ):
     logger.debug(f'Is RANDOM sample used for surrogate training: {train_on_random}')
     logger.debug(f'Image: {image_path}')
-    img = np.asarray(Image.open(image_path))
+
+    if isinstance(image_path, str):
+        img = np.asarray(Image.open(image_path))
+    else:
+        img = np.asarray(image_path)
+        image_path = None
 
     assert segmenter_type in ('slic', 'quick-shift'), 'Unknown segmenter.'
     logger.debug(f'Segmenter in use: {segmenter_type}')
@@ -450,7 +669,7 @@ def explain_image(image_path, classifier,
             else:
                 class_probs = sampled_data_probabilities[:, class_ids]
                 class_probsR = sampled_data_probabilitiesR[:, class_ids]
-           
+
             # LIMEtree
             tree = sklearn.tree.DecisionTreeRegressor(
                 random_state=random_seed, max_depth=depth_bound)
@@ -458,7 +677,7 @@ def explain_image(image_path, classifier,
                 tree.fit(sampled_data, class_probsR)
             else:
                 tree.fit(sampled_data, class_probs)
-            
+
             pred = tree.predict(sampled_data)
             diffs = class_probs - pred
             diffsR = class_probsR - pred
@@ -578,6 +797,35 @@ def explain_image_exp(
         train_on_random=train_on_random)
 
 
+def explain_cifar_exp(
+        image_path, use_cifar100=False, use_gpu=False,
+        random_seed=42, n_top_classes=3,            # General
+        samples_number=150, batch_size=50,          # Processing
+        segmenter_type='slic',                      # Segmenter Type
+        ratio=0.5, kernel_size=5, max_dist=10,      # QS Segmenter
+        n_segments=13,                              # Slic Segmenter
+        occlusion_colour='black',                   # Occluder
+        generate_complete_sample=True,              # Sampler
+        kernel_width=0.25,                          # Similarity
+        train_on_random=False                       # Training on random occlusion
+        ):
+    if use_cifar100:
+        clf = imgclf.Cifar100Classifier(use_gpu=use_gpu)
+    else:
+        clf = imgclf.Cifar10Classifier(use_gpu=use_gpu)
+    return explain_image(
+        image_path[0], clf,
+        random_seed=random_seed, n_top_classes=n_top_classes,
+        samples_number=samples_number, batch_size=batch_size,
+        segmenter_type=segmenter_type,
+        ratio=ratio, kernel_size=kernel_size, max_dist=max_dist,
+        n_segments=n_segments,
+        occlusion_colour=occlusion_colour,
+        generate_complete_sample=generate_complete_sample,
+        kernel_width=kernel_width,
+        train_on_random=train_on_random)
+
+
 def lime_loss(residuals, weights=None):
     """Individual loss (LIME)."""
     if weights is None:
@@ -614,13 +862,19 @@ def limet_loss(residuals, weights=None):
     return mse
 
 
-def compute_loss(pred_idxs, similarities, diff, diff_type):
+def compute_loss(pred_idxs, similarities, diff, diff_type, ignoreR=False):
     assert diff_type in ('lime', 'limet'), 'Only lime and limet are supported.'
-    lime_measurements = {'diffs', 'diffsR', 'diffs_weighted', 'diffs_weightedR'}
+    lime_measurements = {'diffs', 'diffs_weighted'}
+    if not ignoreR:
+        lime_measurements = lime_measurements.union(
+            {'diffsR', 'diffs_weightedR'})
     limet_measurements = lime_measurements.union({
         'cls_id',
-        'diffs_fixed', 'diffs_fixedR',
-        'diffs_fixed_weighted', 'diffs_fixed_weightedR'})
+        'diffs_fixed',
+        'diffs_fixed_weighted'})
+    if not ignoreR:
+        limet_measurements = limet_measurements.union({
+            'diffs_fixedR', 'diffs_fixed_weightedR'})
 
     loss_collector = dict()
 
@@ -636,28 +890,39 @@ def compute_loss(pred_idxs, similarities, diff, diff_type):
 
             # Individual loss
             mse = lime_loss(diff[idx]['diffs'])
-            mseR = lime_loss(diff[idx]['diffsR'])
+            if not ignoreR:
+                mseR = lime_loss(diff[idx]['diffsR'])
 
             wmse = lime_loss(diff[idx]['diffs_weighted'], weights=similarities)
-            wmseR = lime_loss(diff[idx]['diffs_weightedR'], weights=similarities)
+            if not ignoreR:
+                wmseR = lime_loss(diff[idx]['diffs_weightedR'], weights=similarities)
 
             # Cumulative loss
             lt_mse = limet_loss(collect_residuals_lime(
                 diff, pred_idxs[:i+1], 'diffs'))
-            lt_mseR = limet_loss(collect_residuals_lime(
-                diff, pred_idxs[:i+1], 'diffsR'))
+            if not ignoreR:
+                lt_mseR = limet_loss(collect_residuals_lime(
+                    diff, pred_idxs[:i+1], 'diffsR'))
 
             lt_wmse = limet_loss(
                 collect_residuals_lime(diff, pred_idxs[:i+1], 'diffs_weighted'),
                 weights=similarities)
-            lt_wmseR = limet_loss(
-                collect_residuals_lime(diff, pred_idxs[:i+1], 'diffs_weightedR'),
-                weights=similarities)
- 
+            if not ignoreR:
+                lt_wmseR = limet_loss(
+                    collect_residuals_lime(diff, pred_idxs[:i+1], 'diffs_weightedR'),
+                    weights=similarities)
+
             loss_collector[idx] = dict(
-                mse=mse, mseR=mseR, wmse=wmse, wmseR=wmseR,  # LIME loss
-                lt_mse=lt_mse, lt_mseR=lt_mseR,              # LIMEtree loss
-                lt_wmse=lt_wmse, lt_wmseR=lt_wmseR)
+                mse=mse, wmse=wmse,  # LIME loss
+                lt_mse=lt_mse,              # LIMEtree loss
+                lt_wmse=lt_wmse)
+            if not ignoreR:
+                # LIME loss
+                loss_collector[idx]['mseR'] = mseR
+                loss_collector[idx]['wmseR'] = wmseR
+                # LIMEtree loss
+                loss_collector[idx]['lt_mseR'] = lt_mseR
+                loss_collector[idx]['lt_wmseR'] = lt_wmseR
     else:
         for depth, depth_dict in diff.items():
             loss_collector[depth] = dict()
@@ -671,85 +936,111 @@ def compute_loss(pred_idxs, similarities, diff, diff_type):
                 classes_no_ = classes_no + 1
 
                 mse = lime_loss(diff_['diffs'].T[classes_no, :])
-                mseR = lime_loss(diff_['diffsR'].T[classes_no, :])
+                if not ignoreR:
+                    mseR = lime_loss(diff_['diffsR'].T[classes_no, :])
 
                 mseF = lime_loss(diff_['diffs_fixed'].T[classes_no, :])
-                mseFR = lime_loss(diff_['diffs_fixedR'].T[classes_no, :])
+                if not ignoreR:
+                    mseFR = lime_loss(diff_['diffs_fixedR'].T[classes_no, :])
 
                 # similarities_ = np.tile(similarities, classes_no)
                 wmse = lime_loss(
                     diff_['diffs_weighted'].T[classes_no, :],
                     weights=similarities)
-                wmseR = lime_loss(
-                    diff_['diffs_weightedR'].T[classes_no, :],
-                    weights=similarities)
+                if not ignoreR:
+                    wmseR = lime_loss(
+                        diff_['diffs_weightedR'].T[classes_no, :],
+                        weights=similarities)
 
                 wmseF = lime_loss(
                     diff_['diffs_fixed_weighted'].T[classes_no, :],
                     weights=similarities)
-                wmseFR = lime_loss(
-                    diff_['diffs_fixed_weightedR'].T[classes_no, :],
-                    weights=similarities)
+                if not ignoreR:
+                    wmseFR = lime_loss(
+                        diff_['diffs_fixed_weightedR'].T[classes_no, :],
+                        weights=similarities)
 
                 # Cumulative loss
                 lt_mse = limet_loss(diff_['diffs'].T[:classes_no_, :])
-                lt_mseR = limet_loss(diff_['diffsR'].T[:classes_no_, :])
+                if not ignoreR:
+                    lt_mseR = limet_loss(diff_['diffsR'].T[:classes_no_, :])
 
                 lt_mseF = limet_loss(diff_['diffs_fixed'].T[:classes_no_, :])
-                lt_mseFR = limet_loss(diff_['diffs_fixedR'].T[:classes_no_, :])
+                if not ignoreR:
+                    lt_mseFR = limet_loss(diff_['diffs_fixedR'].T[:classes_no_, :])
 
                 lt_wmse = limet_loss(
                     diff_['diffs_weighted'].T[:classes_no_, :],
                     weights=similarities)
-                lt_wmseR = limet_loss(
-                    diff_['diffs_weightedR'].T[:classes_no_, :],
-                    weights=similarities)
+                if not ignoreR:
+                    lt_wmseR = limet_loss(
+                        diff_['diffs_weightedR'].T[:classes_no_, :],
+                        weights=similarities)
 
                 lt_wmseF = limet_loss(
                     diff_['diffs_fixed_weighted'].T[:classes_no_, :],
                     weights=similarities)
-                lt_wmseFR = limet_loss(
-                    diff_['diffs_fixed_weightedR'].T[:classes_no_, :],
-                    weights=similarities)
+                if not ignoreR:
+                    lt_wmseFR = limet_loss(
+                        diff_['diffs_fixed_weightedR'].T[:classes_no_, :],
+                        weights=similarities)
 
                 loss_collector[depth][classes_no_] = dict(
-                    mse=mse, mseR=mseR,                    # LIME loss
-                    mseF=mseF, mseFR=mseFR,
-                    wmse= wmse, wmseR=wmseR,
-                    wmseF=wmseF, wmseFR=wmseFR,
-                    lt_mse=lt_mse, lt_mseR=lt_mseR,        # LIMEtree loss
-                    lt_mseF=lt_mseF, lt_mseFR=lt_mseFR,
-                    lt_wmse= lt_wmse, lt_wmseR=lt_wmseR,
-                    lt_wmseF=lt_wmseF, lt_wmseFR=lt_wmseFR)
+                    mse=mse,              # LIME loss
+                    mseF=mseF,
+                    wmse= wmse,
+                    wmseF=wmseF,
+                    lt_mse=lt_mse,        # LIMEtree loss
+                    lt_mseF=lt_mseF,
+                    lt_wmse= lt_wmse,
+                    lt_wmseF=lt_wmseF)
+                if not ignoreR:
+                    # LIME loss
+                    loss_collector[depth][classes_no_]['mseR'] = mseR
+                    loss_collector[depth][classes_no_]['mseFR'] = mseFR
+                    loss_collector[depth][classes_no_]['wmseR'] = wmseR
+                    loss_collector[depth][classes_no_]['wmseFR'] = wmseFR
+                    # LIMEtree loss
+                    loss_collector[depth][classes_no_]['lt_mseR'] = lt_mseR
+                    loss_collector[depth][classes_no_]['lt_mseFR'] = lt_mseFR
+                    loss_collector[depth][classes_no_]['lt_wmseR'] = lt_wmseR
+                    loss_collector[depth][classes_no_]['lt_wmseFR'] = lt_wmseFR
 
     return loss_collector
 
 
-def process_loss(loss_collector):
+def process_loss(loss_collector, ignoreR=False, measure_time=False):
     lime_scores, limet_scores, top_classes = [], [], []
     imgs_sorted = sorted(loss_collector.keys())
 
     for img in imgs_sorted:
-        top_pred, similarities, lime, limet = loss_collector[img]
+        if measure_time:
+            top_pred, similarities, lime, limet, _, _ = loss_collector[img]
+        else:
+            top_pred, similarities, lime, limet = loss_collector[img]
 
         if similarities is None:
             logger.debug(f'Image not processed: {img}')
             continue
 
         top_classes.append(top_pred)
-        loss = compute_loss(top_pred, similarities, lime, 'lime')
+        loss = compute_loss(top_pred, similarities, lime, 'lime', ignoreR=ignoreR)
         lime_scores.append(loss)
-        loss = compute_loss(top_pred, similarities, limet, 'limet')
+        loss = compute_loss(top_pred, similarities, limet, 'limet', ignoreR=ignoreR)
         limet_scores.append(loss)
 
     assert len(lime_scores) == len(limet_scores)
-    logger.debug(f'Number of processed images: {len(limet_scores)}')
+    logger.debug(f'Number of processed data points: {len(limet_scores)}')
     return top_classes, lime_scores, limet_scores
 
 
-def summarise_loss_lime(lime_loss, top_classes):
-    score_types = ['mse', 'mseR', 'wmse', 'wmseR',
-                   'lt_mse', 'lt_mseR', 'lt_wmse', 'lt_wmseR']
+def summarise_loss_lime(lime_loss, top_classes, ignoreR=False):
+    score_types = ['mse', 'wmse',
+                   'lt_mse', 'lt_wmse']
+    if not ignoreR:
+        score_types += [
+            'mseR', 'wmseR',
+            'lt_mseR', 'lt_wmseR']
 
     lime_loss_summary = {}
     for score_type in score_types:
@@ -768,16 +1059,22 @@ def summarise_loss_lime(lime_loss, top_classes):
         lime_loss_summary_[score_type] = {}
         for cls_, scores in lime_loss_summary[score_type].items():
             lime_loss_summary_[score_type][cls_] = (
-                np.mean(scores), np.var(scores))
+                np.mean(scores), np.std(scores))
 
     return lime_loss_summary_
 
 
-def summarise_loss_limet(limet_loss, top_classes, rounding=2):
-    score_types = ['mse', 'mseR', 'wmse', 'wmseR',
-                   'lt_mse', 'lt_mseR', 'lt_wmse', 'lt_wmseR',
-                   'mseF', 'mseFR', 'wmseF', 'wmseFR',
-                   'lt_mseF', 'lt_mseFR', 'lt_wmseF', 'lt_wmseFR']
+def summarise_loss_limet(limet_loss, top_classes, rounding=2, ignoreR=False):
+    score_types = ['mse', 'wmse',
+                   'lt_mse', 'lt_wmse',
+                   'mseF', 'wmseF',
+                   'lt_mseF', 'lt_wmseF']
+    if not ignoreR:
+        score_types += [
+            'mseR', 'wmseR',
+            'lt_mseR', 'lt_wmseR',
+            'mseFR', 'wmseFR',
+            'lt_mseFR', 'lt_wmseFR']
 
     assert top_classes, 'Must not be empty.'
     classes_n = top_classes[0].shape[0]
@@ -811,14 +1108,16 @@ def summarise_loss_limet(limet_loss, top_classes, rounding=2):
             limet_loss_summary_[score_type][classes_no] = {}
             for depth_ratio, scores in limet_loss_summary[score_type][classes_no].items():
                 limet_loss_summary_[score_type][classes_no][depth_ratio] = (
-                    np.mean(scores), np.var(scores))
+                    np.mean(scores), np.std(scores))
 
     return limet_loss_summary_
 
 
 def plot_loss_summary(lime_scores_summary, limet_scores_summary, class_id,
                       use_limet_loss=False, use_weighted=True, use_random=False,
-                      err_style_band=True, fontsize=16):
+                      err_style_band=True, fontsize=16, ignoreR=False):
+    if ignoreR and use_random:
+        raise RuntimeError('Cannot use `use_random` when `ignoreR` is set to `True`.')
     if use_limet_loss:
         if use_weighted:
             if use_random:
@@ -886,11 +1185,11 @@ def plot_loss_summary(lime_scores_summary, limet_scores_summary, class_id,
         err_.append(limet[x][1])
     if err_style_band:
         y_np, err_np = np.array(y_), np.array(err_)
-        plt.plot(x_, y_, label='{\\sc LIMEt}', color=colours[0])
+        plt.plot(x_, y_, label='{\\sc TREE}', color=colours[0])
         plt.fill_between(
             x_, y_np-err_np, y_np+err_np, alpha=0.3, color=colours[0])
     else:
-        plt.errorbar(x_, y_, yerr=err_, label='{\\sc LIMEt}',
+        plt.errorbar(x_, y_, yerr=err_, label='{\\sc TREE}',
                     solid_capstyle='projecting', capsize=5, color=colours[0])
 
     # (Fixed) LIMEtree loss
@@ -901,13 +1200,13 @@ def plot_loss_summary(lime_scores_summary, limet_scores_summary, class_id,
     if err_style_band:
         y_np, err_np = np.array(y_), np.array(err_)
         plt.plot(
-            x_, y_, label='\\underline{{\\sc LIMEt}}',
+            x_, y_, label='\\underline{{\\sc TREE}}',
             color=colours[1])
         plt.fill_between(
             x_, y_np-err_np, y_np+err_np, alpha=0.3, color=colours[1])
     else:
         plt.errorbar(
-            x_, y_, yerr=err_, label='\\underline{{\\sc LIMEt}}',
+            x_, y_, yerr=err_, label='\\underline{{\\sc TREE}}',
             solid_capstyle='projecting', capsize=5, color=colours[1])
 
     plt.tick_params(axis='x', labelsize=fontsize)
@@ -924,3 +1223,89 @@ def plot_loss_summary(lime_scores_summary, limet_scores_summary, class_id,
     save_path = f'_figures/loss-cls{class_id}-{stub}.pdf'
     print(f'Saving to: {save_path}')
     plt.savefig(save_path, dpi=300, bbox_inches='tight', pad_inches=0)
+
+
+def tabulate_loss_summary(
+        lime_scores_summary, limet_scores_summary, class_id, cutoff,
+        scale_factor=1, latex=False,
+        use_limet_loss=False, use_weighted=False, use_random=False,
+        ignoreR=False):
+    if ignoreR and use_random:
+        raise RuntimeError('Cannot use `use_random` when `ignoreR` is set to `True`.')
+    if use_limet_loss:
+        if use_weighted:
+            if use_random:
+                stub = 'limet_weighted_random'
+                lime_loss_key, limetf_loss_key = 'lt_wmseR', 'lt_wmseFR'
+                limet_loss_key = lime_loss_key
+            else:
+                stub = 'limet_weighted_Xrandom'
+                lime_loss_key, limetf_loss_key = 'lt_wmse', 'lt_wmseF'
+                limet_loss_key = lime_loss_key
+        else:
+            if use_random:
+                stub = 'limet_Xweighted_random'
+                lime_loss_key, limetf_loss_key = 'lt_mseR', 'lt_mseFR'
+                limet_loss_key = lime_loss_key
+            else:
+                stub = 'limet_Xweighted_Xrandom'
+                lime_loss_key, limetf_loss_key = 'lt_mse', 'lt_mseF'
+                limet_loss_key = lime_loss_key
+    else:
+        if use_weighted:
+            if use_random:
+                stub = 'lime_weighted_random'
+                lime_loss_key, limetf_loss_key = 'wmseR', 'wmseFR'
+                limet_loss_key = lime_loss_key
+            else:
+                stub = 'lime_weighted_Xrandom'
+                lime_loss_key, limetf_loss_key = 'wmse', 'wmseF'
+                limet_loss_key = lime_loss_key
+        else:
+            if use_random:
+                stub = 'lime_Xweighted_random'
+                lime_loss_key, limetf_loss_key = 'mseR', 'mseFR'
+                limet_loss_key = lime_loss_key
+            else:
+                stub = 'lime_Xweighted_Xrandom'
+                lime_loss_key, limetf_loss_key = 'mse', 'mseF'
+                limet_loss_key = lime_loss_key
+
+    lime_mean, lime_var = lime_scores_summary[lime_loss_key][class_id]
+    limet = limet_scores_summary[limet_loss_key][class_id]
+    limetf = limet_scores_summary[limetf_loss_key][class_id]
+
+    limet_keys = sorted(list(limet.keys()))
+    limetf_keys = sorted(list(limetf.keys()))
+
+    limet_cutoff_idx = min(limet_keys, key=lambda x:abs(x-cutoff))
+    limetf_cutoff_idx = min(limetf_keys, key=lambda x:abs(x-cutoff))
+
+    results = {'lime': (lime_mean, lime_var),
+               'limet': limet[limet_cutoff_idx],
+               'limetf': limetf[limetf_cutoff_idx]}
+
+    if latex:
+        print(f'\\({scale_factor*results["lime"][0]:2.2f}\pm'
+              f'{scale_factor*results["lime"][1]:2.2f}\\)\n'
+              f'\\({scale_factor*results["limet"][0]:2.2f}\pm'
+              f'{scale_factor*results["limet"][1]:2.2f}\\)\n'
+              f'\\({scale_factor*results["limetf"][0]:2.2f}\pm'
+              f'{scale_factor*results["limetf"][1]:2.2f}\\)')
+
+    return results
+
+
+def compare_execution_time(collector, factor=1):
+    """Computes how many more seconds LIMEtree takes over LIME on average."""
+    times = {}
+    for _, (_, _, _, _, lime_time, limet_time) in collector.items():
+        for depth, time in limet_time.items():
+            t = time - lime_time
+            if depth in times:
+                times[depth].append(factor * t)
+            else:
+                times[depth] = [factor * t]
+    for key in times.keys():
+        times[key] = (np.mean(times[key]), np.std(times[key]))
+    return times
