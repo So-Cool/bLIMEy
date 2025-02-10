@@ -1,5 +1,5 @@
 [![new BSD](https://img.shields.io/github/license/So-Cool/bLIMEy.svg)](https://github.com/So-Cool/bLIMEy/blob/master/LICENCE)
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/So-Cool/bLIMEy/master?filepath=ECML-PKDD_2023)
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/So-Cool/bLIMEy/master?filepath=ELECTRONICS_2025)
 [![DOI](https://img.shields.io/badge/DOI-10.48550/arXiv.2005.01427-violet)][doi]
 
 # LIMEtree: Consistent and Faithful Multi-class Explanations #
