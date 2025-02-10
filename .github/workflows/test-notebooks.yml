@@ -40,25 +40,25 @@ jobs:
         wget https://raw.githubusercontent.com/fat-forensics/resources/master/surrogates_overview/scripts/image_classifier.py -O DAMI_2024/scripts/image_classifier.py
         wget https://raw.githubusercontent.com/fat-forensics/resources/master/surrogates_overview/scripts/imagenet_label_map.py -O DAMI_2024/scripts/imagenet_label_map.py
         wget https://raw.githubusercontent.com/fat-forensics/resources/master/surrogates_overview/scripts/cifar_label_map.py -O DAMI_2024/scripts/cifar_label_map.py
-        mkdir -p ECML-PKDD_2023/scripts
-        wget https://raw.githubusercontent.com/fat-forensics/resources/master/surrogates_overview/scripts/__init__.py -O ECML-PKDD_2023/scripts/__init__.py
-        wget https://raw.githubusercontent.com/fat-forensics/resources/master/surrogates_overview/scripts/image_classifier.py -O ECML-PKDD_2023/scripts/image_classifier.py
-        wget https://raw.githubusercontent.com/fat-forensics/resources/master/surrogates_overview/scripts/imagenet_label_map.py -O ECML-PKDD_2023/scripts/imagenet_label_map.py
-        wget https://raw.githubusercontent.com/fat-forensics/resources/master/surrogates_overview/scripts/cifar_label_map.py -O ECML-PKDD_2023/scripts/cifar_label_map.py
-        cp DAMI_2024/helpers.py ECML-PKDD_2023/scripts/
+        mkdir -p ELECTRONICS_2025/scripts
+        wget https://raw.githubusercontent.com/fat-forensics/resources/master/surrogates_overview/scripts/__init__.py -O ELECTRONICS_2025/scripts/__init__.py
+        wget https://raw.githubusercontent.com/fat-forensics/resources/master/surrogates_overview/scripts/image_classifier.py -O ELECTRONICS_2025/scripts/image_classifier.py
+        wget https://raw.githubusercontent.com/fat-forensics/resources/master/surrogates_overview/scripts/imagenet_label_map.py -O ELECTRONICS_2025/scripts/imagenet_label_map.py
+        wget https://raw.githubusercontent.com/fat-forensics/resources/master/surrogates_overview/scripts/cifar_label_map.py -O ELECTRONICS_2025/scripts/cifar_label_map.py
+        cp DAMI_2024/helpers.py ELECTRONICS_2025/scripts/
     - name: Get PyTorch model
       run: |
         python -c 'import torchvision.models as models; models.inception_v3(pretrained=True);'
         python -c 'import torchvision.models as models; models.alexnet(pretrained=True);'
-        PYTHONPATH=ECML-PKDD_2023 python -c 'import scripts.image_classifier as imgclf; imgclf.Cifar10Classifier(use_gpu=False);'
-        PYTHONPATH=ECML-PKDD_2023 python -c 'import scripts.image_classifier as imgclf; imgclf.Cifar100Classifier(use_gpu=False);'
+        PYTHONPATH=ELECTRONICS_2025 python -c 'import scripts.image_classifier as imgclf; imgclf.Cifar10Classifier(use_gpu=False);'
+        PYTHONPATH=ELECTRONICS_2025 python -c 'import scripts.image_classifier as imgclf; imgclf.Cifar100Classifier(use_gpu=False);'
     - name: Test HCML 2019
       run: pytest --nbval HCML_2019/ --sanitize-with .nbval_sanitize_file.cfg
     - name: Test DAMI 2024
       run: |
         mkdir -p DAMI_2024/_figures
         pytest --nbval DAMI_2024/ --sanitize-with .nbval_sanitize_file.cfg
-    - name: Test ECML-PKDD 2023
+    - name: Test ELECTRONICS 2025
       run: |
-        mkdir -p ECML-PKDD_2023/_figures
-        pytest --nbval ECML-PKDD_2023/ --sanitize-with .nbval_sanitize_file.cfg
+        mkdir -p ELECTRONICS_2025/_figures
+        pytest --nbval ELECTRONICS_2025/ --sanitize-with .nbval_sanitize_file.cfg

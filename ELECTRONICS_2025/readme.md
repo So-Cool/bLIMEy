@@ -1,12 +1,12 @@
 [![new BSD](https://img.shields.io/github/license/So-Cool/bLIMEy.svg)](https://github.com/So-Cool/bLIMEy/blob/master/LICENCE)
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/So-Cool/bLIMEy/master?filepath=ECML-PKDD_2023)
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/So-Cool/bLIMEy/master?filepath=ELECTRONICS_2025)
 [![DOI](https://img.shields.io/badge/DOI-10.48550/arXiv.2005.01427-violet)][doi]
 
-# LIMEtree: Consistent and Faithful Multi-class Explanations #
+# LIMEtree: Consistent and Faithful Surrogate Explanations of Multiple Classes #
 
 This directory contains a collection of Jupyter Notebooks that can be used to
 reproduce the explanations, experiments and plots reported in the
-"*LIMEtree: Consistent and Faithful Multi-class Explanations*" paper.
+"*LIMEtree: Consistent and Faithful Surrogate Explanations of Multiple Classes*" paper.
 
 The manuscript is available on [arXiv].
 
@@ -45,7 +45,7 @@ Explainable artificial intelligence provides tools to better understand
 predictive models and their decisions, but many such methods are limited to
 producing insights with respect to a single class.
 When generating explanations for several classes, reasoning over them to
-obtain a complete view may be difficult since they can present competing or
+obtain a comprehensive view may be difficult since they can present competing or
 contradictory evidence.
 To address this challenge we introduce the novel paradigm of
 *multi-class explanations*.
@@ -67,7 +67,7 @@ wide-ranging advantages of our method across a diverse set of scenarios.
 
 ```
 @article{sokol2020limetree,
-  title={{LIMEtree}: {Consistent} and Faithful Multi-class Explanations},
+  title={{LIMEtree}: {Consistent} and Faithful Surrogate Explanations of Multiple Classes},
   author={Sokol, Kacper and Flach, Peter},
   journal={arXiv preprint arXiv:2005.01427},
   url={https://arxiv.org/abs/2005.01427},

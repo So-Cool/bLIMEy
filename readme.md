@@ -25,10 +25,10 @@ of black-box predictions (bLIMEy). The list of manuscripts is enclosed below.
 [ir]: https://doi.org/10.1007/s10618-024-01010-5
 [dami24]: https://github.com/So-Cool/bLIMEy/tree/master/DAMI_2024
 
-## LIMEtree: Consistent and Faithful Multi-class Explanations ##
+## LIMEtree: Consistent and Faithful Surrogate Explanations of Multiple Classes ##
 
 * The manuscript is available [here][limetree].
-* The code is available in the [`ECML-PKDD_2023` directory][ecmlpkdd23].
+* The code is available in the [`ELECTRONICS_2025` directory][electronics].
 
 [limetree]: https://arxiv.org/abs/2005.01427
-[ecmlpkdd23]: https://github.com/So-Cool/bLIMEy/tree/master/ECML-PKDD_2023
+[electronics]: https://github.com/So-Cool/bLIMEy/tree/master/ELECTRONICS_2025
