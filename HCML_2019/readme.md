@@ -1,6 +1,6 @@
 [![new BSD](https://img.shields.io/github/license/So-Cool/bLIMEy.svg)](https://github.com/So-Cool/bLIMEy/blob/master/LICENCE)
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/So-Cool/bLIMEy/master?filepath=HCML_2019)
-[![DOI](https://img.shields.io/badge/DOI-10.48550/arXiv.1910.13016-violet)][doi]
+[![DOI](https://img.shields.io/badge/arXiv%20DOI-10.48550/arXiv.1910.13016-red)][doi]
 
 # bLIMEy: Surrogate Prediction Explanations Beyond LIME #
 

@@ -1,6 +1,7 @@
 [![new BSD](https://img.shields.io/github/license/So-Cool/bLIMEy.svg)](https://github.com/So-Cool/bLIMEy/blob/master/LICENCE)
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/So-Cool/bLIMEy/master?filepath=DAMI_2024)
-[![DOI](https://img.shields.io/badge/DOI-10.1007/s10618--024--01010--5-violet)][Springer]
+[![DAMI DOI](https://img.shields.io/badge/DAMI%20DOI-10.1007/s10618--024--01010--5-violet)][Springer]
+[![arXiv DOI](https://img.shields.io/badge/arXiv%20DOI-10.48550/arXiv.2008.07007-red)][arxiv-doi]
 
 # Interpretable Representations in Explainable AI: From Theory to Practice #
 
@@ -82,6 +83,7 @@ representations to segmentation granularity and occlusion colour.
 ```
 
 [arXiv]: https://arxiv.org/abs/2008.07007
+[arxiv-doi]: https://doi.org/10.48550/arXiv.2008.07007
 [Springer]: https://doi.org/10.1007/s10618-024-01010-5
 [doc]: https://fat-forensics.org/how_to/index.html#transparency-how-to
 [events]: https://events.fat-forensics.org

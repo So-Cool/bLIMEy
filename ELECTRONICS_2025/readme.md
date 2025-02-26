@@ -1,14 +1,17 @@
 [![new BSD](https://img.shields.io/github/license/So-Cool/bLIMEy.svg)](https://github.com/So-Cool/bLIMEy/blob/master/LICENCE)
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/So-Cool/bLIMEy/master?filepath=ELECTRONICS_2025)
-[![DOI](https://img.shields.io/badge/DOI-10.48550/arXiv.2005.01427-violet)][doi]
+[![Electronics DOI](https://img.shields.io/badge/Electronics%20DOI-10.3390/electronics14050929-violet)][electronics-doi]
+[![arXiv DOI](https://img.shields.io/badge/arXiv%20DOI-10.48550/arXiv.2005.01427-red)][arxiv-doi]
 
 # LIMEtree: Consistent and Faithful Surrogate Explanations of Multiple Classes #
 
 This directory contains a collection of Jupyter Notebooks that can be used to
 reproduce the explanations, experiments and plots reported in the
-"*LIMEtree: Consistent and Faithful Surrogate Explanations of Multiple Classes*" paper.
+"*LIMEtree: Consistent and Faithful Surrogate Explanations of Multiple Classes*" paper
+published in the *Special Issue on Explainable Artificial Intelligence: Concepts, Techniques, Analytics and Applications*
+of the MDPI *Electronics* journal.
 
-The manuscript is available on [arXiv].
+The manuscript is available on [MDPI][electronics-doi] and [arXiv].
 
 A collection of related resources -- illustrating how to build custom surrogates
 for tabular and image data -- is available as
@@ -66,16 +69,21 @@ wide-ranging advantages of our method across a diverse set of scenarios.
 ## BibTeX ##
 
 ```
-@article{sokol2020limetree,
+@article{sokol2025limetree,
   title={{LIMEtree}: {Consistent} and Faithful Surrogate Explanations of Multiple Classes},
   author={Sokol, Kacper and Flach, Peter},
-  journal={arXiv preprint arXiv:2005.01427},
-  url={https://arxiv.org/abs/2005.01427},
-  year={2020}
+  journal={Electronics},
+  publisher={MDPI}
+  volume={14},
+  number={5},
+  pages={929},
+  doi={10.3390/electronics14050929},
+  year={2025}
 }
 ```
 
 [arXiv]: https://arxiv.org/abs/2005.01427
 [doc]: https://fat-forensics.org/how_to/index.html#transparency-how-to
 [events]: https://events.fat-forensics.org
-[doi]: https://doi.org/10.48550/arXiv.2005.01427
+[arxiv-doi]: https://doi.org/10.48550/arXiv.2005.01427
+[electronics-doi]: https://doi.org/10.3390/electronics14050929

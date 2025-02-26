@@ -30,5 +30,5 @@ of black-box predictions (bLIMEy). The list of manuscripts is enclosed below.
 * The manuscript is available [here][limetree].
 * The code is available in the [`ELECTRONICS_2025` directory][electronics].
 
-[limetree]: https://arxiv.org/abs/2005.01427
+[limetree]: https://doi.org/10.3390/electronics14050929
 [electronics]: https://github.com/So-Cool/bLIMEy/tree/master/ELECTRONICS_2025
