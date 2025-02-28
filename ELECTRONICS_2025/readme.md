@@ -73,7 +73,7 @@ wide-ranging advantages of our method across a diverse set of scenarios.
   title={{LIMEtree}: {Consistent} and Faithful Surrogate Explanations of Multiple Classes},
   author={Sokol, Kacper and Flach, Peter},
   journal={Electronics},
-  publisher={MDPI}
+  publisher={MDPI},
   volume={14},
   number={5},
   pages={929},
